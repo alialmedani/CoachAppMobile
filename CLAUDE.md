@@ -180,5 +180,6 @@ flutter build apk --debug           # Android build sanity check
    iOS plist before a device build. `dart analyze` passes without these; `flutter build` won't.
 8. **Build coaching features** as vertical slices under `lib/features/` (start with Trainee, Today
    dashboard, WorkoutPlan, NutritionPlan, ProgressEntry). → **mobile-feature** + **mobile-api** + **mobile-ui**
-9. Re-home `reference_pending/` files into `lib/` as the matching coaching features are built
-   (excel export, notification router, deep-link, splash, home top bar).
+9. Re-home the remaining `reference_pending/` files into `lib/` as the matching coaching features are
+   built — now just **excel export** and **notification router**. (The splash and home top bar were
+   adapted into `lib/core` for CoachApp; the driver deep-link screen was deleted as not needed.)

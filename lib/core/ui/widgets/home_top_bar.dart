@@ -1,55 +1,51 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../constant/app_colors/app_colors.dart';
 import '../../constant/app_design_system.dart';
-import '../../services/realtime/realtime_service.dart';
-import '../../utils/Navigation/navigation.dart';
 import '../../utils/functions/app_logo_provider.dart';
-import '../../../features/Express/notifications/cubit/notification_cubit.dart';
-import '../../../features/Express/notifications/screen/notifications_screen.dart';
-import '../../../features/Express/user/profile/screen/profile_screen.dart';
 
-/// Shared home top bar: Bakeet logo + profile + notifications bell (with a live
-/// unread badge). Used on the merchant, driver and delivery home screens.
+/// Shared CoachApp home top bar: the app logo on the leading side and a pair of
+/// soft, tinted icon buttons (profile + notifications) on the trailing side.
 ///
-/// Slim, shadcn-styled header: a clean white surface with a crisp hairline
-/// bottom border, the brand logo on the leading side, and a pair of soft
-/// tinted icon buttons (profile + notifications) on the trailing side. Reads
-/// correctly under RTL Arabic.
-class HomeTopBar extends StatefulWidget {
-  const HomeTopBar({super.key});
+/// Presentational and **feature-agnostic** — it carries no cubit or feature
+/// import. Pass [onProfileTap] / [onNotificationsTap] to show each action (a
+/// button is hidden when its callback is null), and [unreadCount] to drive the
+/// notifications badge. A screen with a notifications feature typically wraps
+/// this in a `BlocBuilder` and feeds the live count in. Reads correctly under
+/// RTL Arabic.
+///
+/// Slim, shadcn-styled header: a clean card surface with a crisp hairline bottom
+/// border and soft tinted icon buttons.
+class HomeTopBar extends StatelessWidget {
+  final VoidCallback? onProfileTap;
+  final VoidCallback? onNotificationsTap;
+  final int unreadCount;
 
-  @override
-  State<HomeTopBar> createState() => _HomeTopBarState();
-}
-
-class _HomeTopBarState extends State<HomeTopBar> {
-  StreamSubscription<RealtimeNotification>? _sub;
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) context.read<NotificationCubit>().refreshUnreadCount();
-    });
-    // Keep the badge live: refresh the count whenever something arrives.
-    _sub = RealtimeService.instance.events.listen((_) {
-      if (mounted) context.read<NotificationCubit>().refreshUnreadCount();
-    });
-  }
-
-  @override
-  void dispose() {
-    _sub?.cancel();
-    super.dispose();
-  }
+  const HomeTopBar({
+    super.key,
+    this.onProfileTap,
+    this.onNotificationsTap,
+    this.unreadCount = 0,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final actions = <Widget>[
+      if (onProfileTap != null)
+        _SoftIconButton(
+          icon: Icons.person_outline_rounded,
+          onTap: onProfileTap!,
+        ),
+      if (onNotificationsTap != null)
+        _SoftIconButton(
+          icon: Icons.notifications_none_rounded,
+          badgeCount: unreadCount,
+          tinted: true,
+          onTap: onNotificationsTap!,
+        ),
+    ];
+
     return Container(
       padding: EdgeInsets.symmetric(
         horizontal: AppDesignSystem.spacingMD.w,
@@ -68,22 +64,10 @@ class _HomeTopBarState extends State<HomeTopBar> {
         children: [
           appLogo(height: 30.h),
           const Spacer(),
-          _SoftIconButton(
-            icon: Icons.person_outline_rounded,
-            onTap: () => Navigation.push(const ProfileScreen()),
-          ),
-          SizedBox(width: AppDesignSystem.spacingSM.w),
-          BlocBuilder<NotificationCubit, NotificationState>(
-            builder: (context, state) {
-              final count = context.read<NotificationCubit>().unreadCount;
-              return _SoftIconButton(
-                icon: Icons.notifications_none_rounded,
-                badgeCount: count,
-                tinted: true,
-                onTap: () => Navigation.push(const NotificationsScreen()),
-              );
-            },
-          ),
+          for (int i = 0; i < actions.length; i++) ...[
+            if (i != 0) SizedBox(width: AppDesignSystem.spacingSM.w),
+            actions[i],
+          ],
         ],
       ),
     );

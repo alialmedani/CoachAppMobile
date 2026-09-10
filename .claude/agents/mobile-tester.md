@@ -66,8 +66,9 @@ reveals a real bug, report it.
 ## Guardrails
 - Follow the same architecture rules as the rest of the repo; don't introduce a parallel HTTP client
   or manual `emit()` in a feature cubit just to make a test convenient.
-- Expect the transitional scaffold [[mobile-scaffold-state]]: until `core/` moves under `lib/` and the
-  `package:noon_express` imports are fixed, some paths won't resolve — flag that as the baseline rather
-  than working around it with throwaway code.
+- Expect the transitional scaffold [[mobile-scaffold-state]]: `lib/core` is ported and analyze-clean,
+  but there are no `lib/features/` yet and `main.dart` is still the default counter — test the core
+  primitives and new feature slices you add, not the placeholder app. Firebase/native config is absent,
+  so avoid tests that require it.
 - If a new testing convention or helper is adopted, tell **mobile-brain** to update the agents/CLAUDE.md
   [[mobile-agent-maintenance]].

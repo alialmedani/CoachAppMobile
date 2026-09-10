@@ -60,8 +60,9 @@ lib/features/<Module>/<feature>/
   screen/           <feature>_screen.dart  (+ widgets/)
 ```
 Import depth: `data/usecase/ → core/` = **6** `../`; `screen/`,`cubit/ → core/` = **5** `../`. Count
-them; a wrong `../` count is the most common build failure. If `core/` is still at the repo root (not
-`lib/core`), STOP and flag the [[mobile-scaffold-state]] cleanup — slices belong under `lib/`.
+them; a wrong `../` count is the most common build failure. Prefer `package:coachappmobile/core/...`
+for core imports to avoid miscounting. `lib/core` already exists and is analyze-clean — build features
+under `lib/features/` on top of it [[mobile-scaffold-state]].
 
 ## Hard bans (never do these) [[mobile-boilerplate-state]]
 - ❌ **No `emit()` in a feature cubit for API state.** The boilerplate widgets (`CreateModel`,

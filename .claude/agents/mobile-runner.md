@@ -57,12 +57,13 @@ smoke-test is asked for. Run long-lived processes in the background so you can o
    reached, and any exceptions from the log.
 
 ## Expect the transitional scaffold [[mobile-scaffold-state]]
-Until the cleanup is done, a fresh checkout will **not** be green: `core/` is at the repo root (not
-`lib/`), so `package:coachappmobile/core/...` won't resolve; several files import
-`package:noon_express/...`; `main.dart` is the default counter (won't wire the app); there's no
-`assets/translations/`. Report these as the known baseline, and when asked to verify a change,
-separate "was already broken" from "this change broke it". Don't declare the app healthy just because
-`main.dart`'s counter builds.
+`lib/core` is ported and **`dart analyze lib` is clean** (only a few info-level lints inherited from
+the reference). Current baseline: `flutter pub get` succeeds; `dart analyze` is clean; but `main.dart`
+is still the default counter (so the app doesn't wire the real core yet), `api_url.dart` points at
+JasimExpress, and **Firebase native config is absent** — so `flutter build`/`flutter run` for a device
+will fail until a CoachApp `flutterfire configure` + `google-services.json`/iOS plist are added. When
+asked to verify a change, separate "was already pending" from "this change broke it", and don't
+declare the app healthy just because `main.dart`'s counter builds.
 
 ## Guardrails
 - If a run needs an interactive step (accept an Android license, start an emulator, device auth),

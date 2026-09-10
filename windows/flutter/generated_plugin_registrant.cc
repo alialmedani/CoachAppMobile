@@ -6,18 +6,21 @@
 
 #include "generated_plugin_registrant.h"
 
-#include <api_provider/api_provider_plugin_c_api.h>
-#include <flutter_secure_storage_windows/flutter_secure_storage_windows_plugin.h>
-#include <location/location_plugin.h>
+#include <file_selector_windows/file_selector_windows.h>
+#include <firebase_core/firebase_core_plugin_c_api.h>
+#include <permission_handler_windows/permission_handler_windows_plugin.h>
+#include <share_plus/share_plus_windows_plugin_c_api.h>
 #include <url_launcher_windows/url_launcher_windows.h>
 
 void RegisterPlugins(flutter::PluginRegistry* registry) {
-  ApiProviderPluginCApiRegisterWithRegistrar(
-      registry->GetRegistrarForPlugin("ApiProviderPluginCApi"));
-  FlutterSecureStorageWindowsPluginRegisterWithRegistrar(
-      registry->GetRegistrarForPlugin("FlutterSecureStorageWindowsPlugin"));
-  LocationPluginRegisterWithRegistrar(
-      registry->GetRegistrarForPlugin("LocationPlugin"));
+  FileSelectorWindowsRegisterWithRegistrar(
+      registry->GetRegistrarForPlugin("FileSelectorWindows"));
+  FirebaseCorePluginCApiRegisterWithRegistrar(
+      registry->GetRegistrarForPlugin("FirebaseCorePluginCApi"));
+  PermissionHandlerWindowsPluginRegisterWithRegistrar(
+      registry->GetRegistrarForPlugin("PermissionHandlerWindowsPlugin"));
+  SharePlusWindowsPluginCApiRegisterWithRegistrar(
+      registry->GetRegistrarForPlugin("SharePlusWindowsPluginCApi"));
   UrlLauncherWindowsRegisterWithRegistrar(
       registry->GetRegistrarForPlugin("UrlLauncherWindows"));
 }

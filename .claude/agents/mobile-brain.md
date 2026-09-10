@@ -47,13 +47,15 @@ docs true.
    slice maps to endpoints that actually exist. Never invent backend routes.
 
 ### Remember the repo is transitional [[mobile-scaffold-state]]
-`core/` is at the repo root (must live in `lib/core`), `main.dart` is the default counter, some files
-import `package:noon_express/...` (broken), `api_url.dart` points at JasimExpress, there's no
-`features/` or `assets/translations/` yet, and the delivery/merchant/driver content in the guides is
-**legacy** — the real domain is **coaching** (Trainee, WorkoutPlan, NutritionPlan, Exercise, Food,
-ProgressEntry, Dashboard). Factor the [Known cleanup backlog](../../CLAUDE.md) into plans: a feature
-slice may be blocked until the scaffold cleanup (move to `lib/`, fix imports, repoint `api_url`, wire
-`main.dart`, add translations) is done.
+**Done:** `lib/core` is ported from the reference and `dart analyze` clean; package is
+`coachappmobile`; `pubspec.yaml`, `assets/` (fonts + `translations/`) and `firebase_options.dart` are
+in place; five feature-coupled files are parked in `reference_pending/`. **Still pending:** `main.dart`
+is the default counter; `api_url.dart` points at JasimExpress; Firebase needs a CoachApp
+`flutterfire configure` + native config; there are no `lib/features/` yet; the delivery/merchant/driver
+content in the guides is **legacy** — the real domain is **coaching** (Trainee, WorkoutPlan,
+NutritionPlan, Exercise, Food, ProgressEntry, Dashboard). Factor the [Known cleanup backlog](../../CLAUDE.md)
+into plans: a feature slice that needs auth/networking may be blocked until `api_url` is repointed and
+`main.dart` is wired.
 
 ## The specialists you route to
 - **mobile-feature** — builds a full vertical slice (model → params/usecase → repository → cubit →

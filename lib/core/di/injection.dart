@@ -1,3 +1,9 @@
+import 'package:coachappmobile/features/auth/cubit/session_cubit.dart';
+import 'package:coachappmobile/features/coach/exercises/cubit/exercise_cubit.dart';
+import 'package:coachappmobile/features/coach/foods/cubit/food_cubit.dart';
+import 'package:coachappmobile/features/coach/nutrition_plans/cubit/nutrition_plan_cubit.dart';
+import 'package:coachappmobile/features/coach/trainees/cubit/trainee_cubit.dart';
+import 'package:coachappmobile/features/coach/workout_plans/cubit/workout_plan_cubit.dart';
 import 'package:get_it/get_it.dart';
 
 /// Global service locator. Call [setUp] once from `main()` before `runApp`.
@@ -11,5 +17,16 @@ import 'package:get_it/get_it.dart';
 final getIt = GetIt.instance;
 
 Future<void> setUp() async {
-  // TODO(CoachApp): register feature cubits here as features are added under lib/features/.
+  // App-level session/auth holder (Phase 1).
+  getIt.registerLazySingleton(() => SessionCubit());
+
+  // Feature cubits — provided per-screen/tab via BlocProvider(create:).
+  // Factories so each provider owns a fresh instance (closed on dispose).
+  getIt.registerFactory(() => TraineeCubit());
+  getIt.registerFactory(() => ExerciseCubit());
+  getIt.registerFactory(() => FoodCubit());
+  getIt.registerFactory(() => WorkoutPlanCubit());
+  getIt.registerFactory(() => NutritionPlanCubit());
+  // TODO(CoachApp): register the rest of the feature cubits here as features
+  // are added under lib/features/.
 }

@@ -27,22 +27,32 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final cubit = context.read<FoodCubit>();
-    return Scaffold(
-      backgroundColor: AppDesignSystem.surfaceLight,
-      appBar: AppTopBar(
-        title: 'food_details'.tr(),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context, _changed),
+    // System/gesture back must carry `_changed` back to the list (like the
+    // leading button does) so the list refreshes after an edit/delete;
+    // a plain implicit pop returns null and would leave the list stale.
+    return PopScope<bool>(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        Navigator.pop(context, _changed);
+      },
+      child: Scaffold(
+        backgroundColor: AppDesignSystem.surfaceLight,
+        appBar: AppTopBar(
+          title: 'food_details'.tr(),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => Navigator.pop(context, _changed),
+          ),
         ),
-      ),
-      body: GetModel<FoodModel>(
-        onCubitCreated: (c) => _getModel = c,
-        useCaseCallBack: () => cubit.fetchFoodById(widget.foodId),
-        modelBuilder: (food) => _Body(
-          food: food,
-          onEdit: () => _edit(cubit, food),
-          onDelete: () => _confirmDelete(cubit, food),
+        body: GetModel<FoodModel>(
+          onCubitCreated: (c) => _getModel = c,
+          useCaseCallBack: () => cubit.fetchFoodById(widget.foodId),
+          modelBuilder: (food) => _Body(
+            food: food,
+            onEdit: () => _edit(cubit, food),
+            onDelete: () => _confirmDelete(cubit, food),
+          ),
         ),
       ),
     );
@@ -236,10 +246,7 @@ class _MacroCard extends StatelessWidget {
         padding: EdgeInsets.symmetric(vertical: AppDesignSystem.spacingMD.h),
         child: Column(
           children: [
-            Text(
-              '$value g',
-              style: AppDesignSystem.h5.copyWith(color: color),
-            ),
+            Text('$value g', style: AppDesignSystem.h5.copyWith(color: color)),
             SizedBox(height: AppDesignSystem.spacing2XS.h),
             Text(
               label,

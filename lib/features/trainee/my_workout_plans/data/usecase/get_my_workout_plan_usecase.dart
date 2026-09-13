@@ -1,0 +1,18 @@
+import 'package:coachappmobile/core/results/result.dart';
+import 'package:coachappmobile/core/usecase/usecase.dart';
+import 'package:coachappmobile/features/coach/workout_plans/data/model/workout_plan_model.dart';
+import 'package:coachappmobile/features/trainee/shared/trainee_params.dart';
+
+import '../repository/my_workout_plan_repository.dart';
+
+/// Fetch one of the trainee's plans as a full tree by id.
+class GetMyWorkoutPlanUsecase extends UseCase<WorkoutPlanModel, ByIdParams> {
+  final MyWorkoutPlanRepository repository;
+
+  GetMyWorkoutPlanUsecase(this.repository);
+
+  @override
+  Future<Result<WorkoutPlanModel>> call({required ByIdParams params}) {
+    return repository.getMyWorkoutPlanByIdRequest(id: params.id);
+  }
+}

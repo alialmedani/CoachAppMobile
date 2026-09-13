@@ -67,3 +67,17 @@ const workoutPlanUrl = '${baseUrl}api/app/workout-plan';
 // and server-computed totals). set-active is a custom action:
 // POST {nutritionPlanUrl}/{id}/set-active
 const nutritionPlanUrl = '${baseUrl}api/app/nutrition-plan';
+
+/////// trainee — my plans (Phase 12) ////////
+// Trainee-scoped, read-only. GetList returns an UNPAGED top-level array of
+// summaries (days/meals empty); `/{id}` returns the full enriched tree. Same
+// WorkoutPlanDto/NutritionPlanDto shapes as the coach endpoints, so the models
+// are reused. (The `/active` variants are deferred — list summaries carry
+// isActive and Today embeds the active plan, so they aren't needed yet.)
+const myWorkoutPlanUrl = '${baseUrl}api/app/my-workout-plan';
+const myNutritionPlanUrl = '${baseUrl}api/app/my-nutrition-plan';
+
+/////// trainee — today (Phase 13) ////////
+// GET with `?Date=yyyy-MM-dd` (the trainee's LOCAL date, so "today" respects
+// their timezone). Returns MyTodayDto (always non-null).
+const myTodayUrl = '${baseUrl}api/app/my-today';

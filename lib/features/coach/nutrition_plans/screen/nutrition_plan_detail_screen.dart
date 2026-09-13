@@ -33,22 +33,32 @@ class _NutritionPlanDetailScreenState extends State<NutritionPlanDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final cubit = context.read<NutritionPlanCubit>();
-    return Scaffold(
-      backgroundColor: AppDesignSystem.surfaceLight,
-      appBar: AppTopBar(
-        title: 'nutrition_plan_details'.tr(),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context, _changed),
+    // System/gesture back must carry `_changed` back to the list (like the
+    // leading button does) so the list refreshes after a set-active/edit;
+    // a plain implicit pop returns null and would leave the list stale.
+    return PopScope<bool>(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        Navigator.pop(context, _changed);
+      },
+      child: Scaffold(
+        backgroundColor: AppDesignSystem.surfaceLight,
+        appBar: AppTopBar(
+          title: 'nutrition_plan_details'.tr(),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => Navigator.pop(context, _changed),
+          ),
         ),
-      ),
-      body: GetModel<NutritionPlanModel>(
-        onCubitCreated: (c) => _getModel = c,
-        useCaseCallBack: () => cubit.fetchNutritionPlanById(widget.planId),
-        modelBuilder: (plan) => _Body(
-          plan: plan,
-          onEdit: () => _edit(cubit, plan),
-          onSetActive: () => _setActive(cubit, plan),
+        body: GetModel<NutritionPlanModel>(
+          onCubitCreated: (c) => _getModel = c,
+          useCaseCallBack: () => cubit.fetchNutritionPlanById(widget.planId),
+          modelBuilder: (plan) => _Body(
+            plan: plan,
+            onEdit: () => _edit(cubit, plan),
+            onSetActive: () => _setActive(cubit, plan),
+          ),
         ),
       ),
     );

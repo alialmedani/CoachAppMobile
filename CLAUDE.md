@@ -105,8 +105,10 @@ Screen (dumb UI)
    `assets/translations/en.json` and `ar.json`. Never hardcode UI strings. App is **RTL-first (AR)**.
 7. **Design system only.** Colors/spacing/radius/typography come from `AppDesignSystem` (or
    `AppColors`/`AppTextStyle`); size with ScreenUtil `.w/.h/.sp/.r`. No hardcoded hex/px.
-8. **Wiring:** every feature Cubit is registered in `lib/core/di/injection.dart` (`getIt`) and
-   provided in `main.dart`'s `MultiBlocProvider`. Navigate via `Keys.navigatorKey` /
+8. **Wiring:** every feature Cubit is registered in `lib/core/di/injection.dart` (`getIt`). App-level
+   cubits (e.g. `SessionCubit`) are provided in `main.dart`'s `MultiBlocProvider`; feature cubits are
+   provided at their route/tab — e.g. per-tab in the role shells via `BlocProvider(create: (_) =>
+   getIt<…>())` — so they are created lazily where used. Navigate via `Keys.navigatorKey` /
    `BlocProvider.value` when passing an existing cubit.
 
 ## CoachApp backend contract (the app's server)
@@ -169,17 +171,30 @@ flutter build apk --debug           # Android build sanity check
    (`injection.dart` reduced to a clean `setUp()` stub; `token_validator.checkToken()` no longer
    depends on the auth feature; `notification.dart`'s tap router stubbed).
 
+5. **`api_url.dart` repointed** at the CoachApp backend — `baseUrl` = `String.fromEnvironment('API_BASE_URL',
+   defaultValue: 'https://10.0.2.2:44370/')` (Android-emulator → host `localhost:44370`); delivery routes
+   dropped, ABP auth/config/document constants kept; tenant header aligned `JasimTenant` → `__tenant`.
+6. **`main.dart` rewritten** — ScreenUtil + EasyLocalization (AR/EN, fallback AR) + `setUp()` DI +
+   `MultiBlocProvider` + `Keys.navigatorKey`; counter deleted. **Foundation rule (invisible to `dart analyze`
+   and to `flutter build` — it only surfaces at runtime): the app root MUST be a `ShadApp` (or otherwise
+   provide a `ShadTheme` + `ShadToaster`) ABOVE `MaterialApp`**, via `ShadApp.custom(theme: buildShadLightTheme(),
+   darkTheme: buildShadDarkTheme(), appBuilder: … MaterialApp …)` with `ShadToaster` in the `MaterialApp`
+   builder. The `modern/` components depend on it (`AppButton` → `ShadButton`, `Dialogs` → `ShadToaster`);
+   omitting it compiles and builds fine but crashes on the first `AppButton`. → smoke-test a slice on a
+   device/emulator the moment it first renders an `AppButton`.
+7. **Phases 1–2 built** — **auth/session/tenant** under `lib/features/auth/` (login → `connect/token` →
+   `application-configuration` bootstrap → `SessionCubit` with `isCoach`/`isTrainee`/`can(policy)`; refresh-or-
+   logout) and **Coach/Trainee shells + permission-gated role routing** under `lib/features/shell/`.
+   Note: the real feature tree is `lib/features/<feature>/…` (no `<Module>` level), so it is **shallower** than
+   the "Import-depth rule" above implies — `screen`/`cubit` → `core` is 3 `../`, `data/usecase` → `core` is 4.
+   Prefer `package:coachappmobile/core/...` absolute imports for core to avoid counting entirely.
+
 **⏳ Remaining (the agents should surface/execute next)**
-5. **Repoint `api_url.dart`** `baseUrl` at the CoachApp backend and replace delivery endpoints with
-   `/api/app/<entity>` coaching routes; align the tenant header (`JasimTenant` → `__tenant`?). → **mobile-api**
-6. **Rewrite `main.dart`** to ScreenUtil + EasyLocalization + `setUp()` DI + `MultiBlocProvider` +
-   `Keys.navigatorKey`, and delete the counter demo. (Port `reference_pending/.../splash_screen.dart`
-   as the app-shell once auth/roles exist.)
-7. **Firebase:** run `flutterfire configure` for the CoachApp project (regenerate `firebase_options.dart`
+8. **Firebase:** run `flutterfire configure` for the CoachApp project (regenerate `firebase_options.dart`
    — it currently holds JasimExpress's `com.enjaz.noon_express`) and add `google-services.json` /
    iOS plist before a device build. `dart analyze` passes without these; `flutter build` won't.
-8. **Build coaching features** as vertical slices under `lib/features/` (start with Trainee, Today
+9. **Build coaching features** as vertical slices under `lib/features/` (next: Trainees, then Today
    dashboard, WorkoutPlan, NutritionPlan, ProgressEntry). → **mobile-feature** + **mobile-api** + **mobile-ui**
-9. Re-home the remaining `reference_pending/` files into `lib/` as the matching coaching features are
+10. Re-home the remaining `reference_pending/` files into `lib/` as the matching coaching features are
    built — now just **excel export** and **notification router**. (The splash and home top bar were
    adapted into `lib/core` for CoachApp; the driver deep-link screen was deleted as not needed.)

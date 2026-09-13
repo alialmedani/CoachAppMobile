@@ -30,12 +30,22 @@ abstract class RemoteDataSource {
     String? leftResponse;
     dynamic rightResponse;
 
-    headers.putIfAbsent("Content-Type", () => 'application/json');
+    // Default to JSON, but honour an explicit [contentType] (e.g.
+    // `application/x-www-form-urlencoded` for the OpenIddict token endpoint).
+    // Setting the header to match the per-request contentType keeps Dio's
+    // "content-type header vs contentType param" assertion happy and lets Dio
+    // url-encode the data Map for form posts; JSON callers are unaffected.
+    headers.putIfAbsent("Content-Type", () => contentType ?? 'application/json');
     headers.putIfAbsent(
       "Accept-Language",
       () => CacheHelper.lang == "ar" ? "ar" : "en",
     );
-    headers.putIfAbsent("JasimTenant", () => CacheHelper.tenant);
+    // Stock ABP resolves the tenant (the "gym/coach code") from the __tenant
+    // header. Only send it when one is stored, so host-level (no-tenant)
+    // requests stay untenanted.
+    if (CacheHelper.tenant.isNotEmpty) {
+      headers.putIfAbsent("__tenant", () => CacheHelper.tenant);
+    }
 
     if (withAuthentication) {
       await checkToken();
@@ -86,8 +96,14 @@ abstract class RemoteDataSource {
       () => CacheHelper.lang == "ar" ? "ar" : "en",
     );
     if (withAuthentication) {
-      String token = CacheHelper.token!;
-      headers.putIfAbsent(headerAuth, () => 'Bearer $token');
+      // Mirror request<T>: refresh a just-expired token and never force-unwrap
+      // (checkToken may clear it on failure), so delete / reset-password /
+      // change-password get the same silent-refresh + safe-token handling.
+      await checkToken();
+      final String token = CacheHelper.token ?? "";
+      if (token.isNotEmpty) {
+        headers.putIfAbsent(headerAuth, () => 'Bearer $token');
+      }
     }
 
     final response = await ApiProvider.sendObjectWithOutResponseRequest(

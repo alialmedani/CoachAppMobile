@@ -290,6 +290,10 @@ class ApiProvider {
             url,
             data: data,
             queryParameters: queryParameters ?? {},
+            // ABP action endpoints expect a JSON body; without this Dio would
+            // url-encode the Map (which [FromBody] won't bind). No Content-Type
+            // header is set on the no-model path, so there's no conflict.
+            options: Options(contentType: 'application/json'),
           );
           break;
         case HttpMethod.PUT:
@@ -297,6 +301,7 @@ class ApiProvider {
             url,
             data: data,
             queryParameters: queryParameters,
+            options: Options(contentType: 'application/json'),
           );
           break;
         case HttpMethod.DELETE:

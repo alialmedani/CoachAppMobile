@@ -4,6 +4,9 @@ import 'package:coachappmobile/features/coach/foods/cubit/food_cubit.dart';
 import 'package:coachappmobile/features/coach/nutrition_plans/cubit/nutrition_plan_cubit.dart';
 import 'package:coachappmobile/features/coach/trainees/cubit/trainee_cubit.dart';
 import 'package:coachappmobile/features/coach/workout_plans/cubit/workout_plan_cubit.dart';
+import 'package:coachappmobile/features/trainee/my_nutrition_plans/cubit/my_nutrition_plan_cubit.dart';
+import 'package:coachappmobile/features/trainee/my_workout_plans/cubit/my_workout_plan_cubit.dart';
+import 'package:coachappmobile/features/trainee/today/cubit/my_today_cubit.dart';
 import 'package:get_it/get_it.dart';
 
 /// Global service locator. Call [setUp] once from `main()` before `runApp`.
@@ -27,6 +30,11 @@ Future<void> setUp() async {
   getIt.registerFactory(() => FoodCubit());
   getIt.registerFactory(() => WorkoutPlanCubit());
   getIt.registerFactory(() => NutritionPlanCubit());
+
+  // Trainee (self-service) feature cubits.
+  getIt.registerFactory(() => MyWorkoutPlanCubit());
+  getIt.registerFactory(() => MyNutritionPlanCubit());
+  getIt.registerFactory(() => MyTodayCubit());
   // TODO(CoachApp): register the rest of the feature cubits here as features
   // are added under lib/features/.
 }

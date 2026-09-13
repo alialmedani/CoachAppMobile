@@ -29,9 +29,15 @@ class _TraineeDetailScreenState extends State<TraineeDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final cubit = context.read<TraineeCubit>();
-    return PopScope(
-      canPop: true,
-      onPopInvokedWithResult: (didPop, _) {},
+    // System/gesture back must carry `_changed` back to the list (like the
+    // leading button does) so the list refreshes after an edit/reset/delete;
+    // a plain implicit pop returns null and would leave the list stale.
+    return PopScope<bool>(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        Navigator.pop(context, _changed);
+      },
       child: Scaffold(
         backgroundColor: AppDesignSystem.surfaceLight,
         appBar: AppTopBar(
@@ -275,7 +281,9 @@ class _Header extends StatelessWidget {
           Text(
             trainee.fullName,
             textAlign: TextAlign.center,
-            style: AppDesignSystem.h4.copyWith(color: AppDesignSystem.neutral900),
+            style: AppDesignSystem.h4.copyWith(
+              color: AppDesignSystem.neutral900,
+            ),
           ),
           SizedBox(height: AppDesignSystem.spacing2XS.h),
           Text(
@@ -344,7 +352,11 @@ class _InfoRow extends StatelessWidget {
       padding: EdgeInsets.symmetric(vertical: AppDesignSystem.spacingXS.h),
       child: Row(
         children: [
-          Icon(icon, size: AppDesignSystem.iconSizeSM.sp, color: AppDesignSystem.neutral400),
+          Icon(
+            icon,
+            size: AppDesignSystem.iconSizeSM.sp,
+            color: AppDesignSystem.neutral400,
+          ),
           SizedBox(width: AppDesignSystem.spacingSM.w),
           Text(
             label,

@@ -27,22 +27,32 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final cubit = context.read<ExerciseCubit>();
-    return Scaffold(
-      backgroundColor: AppDesignSystem.surfaceLight,
-      appBar: AppTopBar(
-        title: 'exercise_details'.tr(),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context, _changed),
+    // System/gesture back must carry `_changed` back to the list (like the
+    // leading button does) so the list refreshes after an edit/delete;
+    // a plain implicit pop returns null and would leave the list stale.
+    return PopScope<bool>(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        Navigator.pop(context, _changed);
+      },
+      child: Scaffold(
+        backgroundColor: AppDesignSystem.surfaceLight,
+        appBar: AppTopBar(
+          title: 'exercise_details'.tr(),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => Navigator.pop(context, _changed),
+          ),
         ),
-      ),
-      body: GetModel<ExerciseModel>(
-        onCubitCreated: (c) => _getModel = c,
-        useCaseCallBack: () => cubit.fetchExerciseById(widget.exerciseId),
-        modelBuilder: (exercise) => _Body(
-          exercise: exercise,
-          onEdit: () => _edit(cubit, exercise),
-          onDelete: () => _confirmDelete(cubit, exercise),
+        body: GetModel<ExerciseModel>(
+          onCubitCreated: (c) => _getModel = c,
+          useCaseCallBack: () => cubit.fetchExerciseById(widget.exerciseId),
+          modelBuilder: (exercise) => _Body(
+            exercise: exercise,
+            onEdit: () => _edit(cubit, exercise),
+            onDelete: () => _confirmDelete(cubit, exercise),
+          ),
         ),
       ),
     );
@@ -72,7 +82,9 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text('delete_exercise'.tr()),
-        content: Text('delete_exercise_confirm'.tr(args: [exercise.name ?? ''])),
+        content: Text(
+          'delete_exercise_confirm'.tr(args: [exercise.name ?? '']),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
@@ -142,8 +154,9 @@ class _Body extends StatelessWidget {
                       alignment: Alignment.center,
                       decoration: BoxDecoration(
                         color: AppDesignSystem.primarySurface,
-                        borderRadius:
-                            BorderRadius.circular(AppDesignSystem.radiusMD.r),
+                        borderRadius: BorderRadius.circular(
+                          AppDesignSystem.radiusMD.r,
+                        ),
                       ),
                       child: Icon(
                         Icons.fitness_center,

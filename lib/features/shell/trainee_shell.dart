@@ -1,7 +1,14 @@
 import 'package:coachappmobile/core/constant/app_design_system.dart';
+import 'package:coachappmobile/core/di/injection.dart';
 import 'package:coachappmobile/core/ui/widgets/animated_notch_navigation_bar.dart';
 import 'package:coachappmobile/features/auth/constants/coachapp_permissions.dart';
 import 'package:coachappmobile/features/auth/cubit/session_cubit.dart';
+import 'package:coachappmobile/features/trainee/my_nutrition_plans/cubit/my_nutrition_plan_cubit.dart';
+import 'package:coachappmobile/features/trainee/my_nutrition_plans/screen/my_nutrition_plans_screen.dart';
+import 'package:coachappmobile/features/trainee/my_workout_plans/cubit/my_workout_plan_cubit.dart';
+import 'package:coachappmobile/features/trainee/my_workout_plans/screen/my_workout_plans_screen.dart';
+import 'package:coachappmobile/features/trainee/today/cubit/my_today_cubit.dart';
+import 'package:coachappmobile/features/trainee/today/screen/today_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -13,8 +20,9 @@ import 'widgets/shell_tab.dart';
 ///
 /// Same pattern as [CoachShell]: a bottom navigation bar over an [IndexedStack]
 /// so each tab keeps its own state. Tabs are built from the trainee's granted
-/// permissions; "Profile" is always present and hosts the profile view +
-/// logout, so the bar is never empty.
+/// permissions; each content tab provides its own feature cubit via
+/// `BlocProvider(create:)`. "Profile" is always present and hosts the profile
+/// view + logout, so the bar is never empty.
 ///
 // TODO(later): give each tab its own nested Navigator for deep push stacks.
 class TraineeShell extends StatefulWidget {
@@ -40,39 +48,36 @@ class _TraineeShellState extends State<TraineeShell> {
   List<ShellTab> _buildTabs(SessionCubit session) {
     final tabs = <ShellTab>[];
 
-    // Today — the trainee's daily home.
-    // TODO(Phase 13): replace with the real "My Today" screen.
+    // Today — the trainee's daily home (Phase 13).
     if (session.can(TraineePermissions.myToday)) {
-      tabs.add(_todayTab);
+      tabs.add(_todayTab());
     }
 
-    // Workout — assigned workout plans.
-    // TODO(Phase 14): replace with the real "My Workout Plans" screen.
+    // Workout — assigned workout plans (Phase 12).
     if (session.can(TraineePermissions.myWorkoutPlans)) {
       tabs.add(
-        const ShellTab(
+        ShellTab(
           labelKey: 'tab_workout',
           activeIcon: Icons.fitness_center,
           inactiveIcon: Icons.fitness_center_outlined,
-          body: ShellPlaceholderScreen(
-            titleKey: 'tab_workout',
-            icon: Icons.fitness_center_outlined,
+          body: BlocProvider(
+            create: (_) => getIt<MyWorkoutPlanCubit>(),
+            child: const MyWorkoutPlansScreen(),
           ),
         ),
       );
     }
 
-    // Nutrition — assigned nutrition plans.
-    // TODO(Phase 15): replace with the real "My Nutrition Plans" screen.
+    // Nutrition — assigned nutrition plans (Phase 12).
     if (session.can(TraineePermissions.myNutritionPlans)) {
       tabs.add(
-        const ShellTab(
+        ShellTab(
           labelKey: 'tab_nutrition',
           activeIcon: Icons.restaurant,
           inactiveIcon: Icons.restaurant_outlined,
-          body: ShellPlaceholderScreen(
-            titleKey: 'tab_nutrition',
-            icon: Icons.restaurant_outlined,
+          body: BlocProvider(
+            create: (_) => getIt<MyNutritionPlanCubit>(),
+            child: const MyNutritionPlansScreen(),
           ),
         ),
       );
@@ -97,7 +102,7 @@ class _TraineeShellState extends State<TraineeShell> {
 
     // Guarantee at least one content tab even for a permission-less trainee.
     if (tabs.isEmpty) {
-      tabs.add(_todayTab);
+      tabs.add(_todayTab());
     }
 
     // Profile — always present; holds the profile view + logout.
@@ -113,13 +118,13 @@ class _TraineeShellState extends State<TraineeShell> {
     return tabs;
   }
 
-  static const ShellTab _todayTab = ShellTab(
+  ShellTab _todayTab() => ShellTab(
     labelKey: 'tab_today',
     activeIcon: Icons.today,
     inactiveIcon: Icons.today_outlined,
-    body: ShellPlaceholderScreen(
-      titleKey: 'tab_today',
-      icon: Icons.today_outlined,
+    body: BlocProvider(
+      create: (_) => getIt<MyTodayCubit>(),
+      child: const TodayScreen(),
     ),
   );
 

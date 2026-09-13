@@ -1,5 +1,4 @@
 import 'package:flutter/cupertino.dart';
-import 'package:page_animation_transition/animations/left_to_right_faded_transition.dart';
 import 'package:page_animation_transition/page_animation_transition.dart';
 import 'package:coachappmobile/core/classes/keys.dart';
 

@@ -1,8 +1,8 @@
 import 'package:coachappmobile/features/coach/nutrition_plans/data/model/nutrition_plan_model.dart';
 import 'package:coachappmobile/features/coach/workout_plans/data/model/workout_day_model.dart';
+import 'package:coachappmobile/features/trainee/workout_logs/data/model/workout_log_model.dart';
 
 import 'nutrition_adherence_model.dart';
-import 'workout_log_model.dart';
 
 /// The trainee's composed "Today" view (mirrors backend `MyTodayDto`) for a
 /// given local date: today's scheduled workout, whether it's a rest day, the

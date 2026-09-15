@@ -160,7 +160,11 @@ class _WorkoutPlansListScreenState extends State<WorkoutPlansListScreen> {
     WorkoutPlanCubit cubit,
     WorkoutPlanModel plan,
   ) async {
-    final ok = await confirmDeletePlan(context, plan.name ?? '');
+    final ok = await confirmDeletePlan(
+      context,
+      plan.name ?? '',
+      isActive: plan.isActive,
+    );
     if (!ok) return;
     final result = await cubit.deleteWorkoutPlan(plan.id ?? '');
     if (!mounted) return;

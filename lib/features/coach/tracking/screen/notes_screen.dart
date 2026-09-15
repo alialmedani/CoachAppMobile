@@ -2,6 +2,8 @@ import 'package:coachappmobile/core/boilerplate/get_model/cubits/get_model_cubit
 import 'package:coachappmobile/core/boilerplate/get_model/widgets/get_model.dart';
 import 'package:coachappmobile/core/constant/app_design_system.dart';
 import 'package:coachappmobile/core/ui/widgets/modern/modern_components.dart';
+import 'package:coachappmobile/features/auth/constants/coachapp_permissions.dart';
+import 'package:coachappmobile/features/auth/cubit/session_cubit.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -50,16 +52,21 @@ class _NotesScreenState extends State<NotesScreen> {
   @override
   Widget build(BuildContext context) {
     final cubit = context.read<NotesCubit>()..setTrainee(widget.traineeId);
+    // F8: only offer "Add" when the coach holds the granular create permission.
+    final canCreate =
+        context.read<SessionCubit>().can(CoachPermissions.notesCreate);
     return Scaffold(
       backgroundColor: AppDesignSystem.surfaceLight,
       appBar: AppTopBar(title: 'notes'.tr(), subtitle: widget.traineeName),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _openEditor(cubit),
-        backgroundColor: AppDesignSystem.primaryColor,
-        foregroundColor: Colors.white,
-        icon: const Icon(Icons.add),
-        label: Text('add_note'.tr()),
-      ),
+      floatingActionButton: canCreate
+          ? FloatingActionButton.extended(
+              onPressed: () => _openEditor(cubit),
+              backgroundColor: AppDesignSystem.primaryColor,
+              foregroundColor: Colors.white,
+              icon: const Icon(Icons.add),
+              label: Text('add_note'.tr()),
+            )
+          : null,
       body: GetModel<List<TraineeNoteModel>>(
         onCubitCreated: (c) => _list = c,
         useCaseCallBack: () => cubit.fetchRecent(),

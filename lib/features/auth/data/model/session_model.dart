@@ -75,11 +75,15 @@ class SessionModel {
 
   /// True for the management persona. Covers the explicit `Coach` role, the
   /// tenant `admin` (gym owner — carries all Coach permissions but not the
-  /// `Coach` role string), and any account granted Coach-management capability.
+  /// `Coach` role string), and — per F20 — ANY account granted any
+  /// `CoachApp.Coach.*` capability (not just the Trainees permission), so a
+  /// custom coach profile still routes to the coach shell.
   bool get isCoach =>
       roles.contains(CoachAppRoles.coach) ||
       roles.contains(CoachAppRoles.admin) ||
-      can(CoachPermissions.trainees);
+      grantedPolicies.entries.any(
+        (e) => e.value == true && e.key.startsWith(CoachPermissions.coachPrefix),
+      );
 
   /// True for the self-service persona: the explicit `Trainee` role or an
   /// account granted the trainee "today" capability.

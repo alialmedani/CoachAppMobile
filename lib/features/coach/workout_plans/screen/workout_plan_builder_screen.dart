@@ -173,6 +173,53 @@ class _WorkoutPlanBuilderScreenState extends State<WorkoutPlanBuilderScreen> {
     return null;
   }
 
+  Future<bool> _confirmDialog(String titleKey, String messageKey) async {
+    final proceed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(titleKey.tr()),
+        content: Text(messageKey.tr()),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('cancel'.tr()),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text('continue_anyway'.tr()),
+          ),
+        ],
+      ),
+    );
+    return proceed ?? false;
+  }
+
+  /// Pre-save confirmations (warn, don't block). Returns true to proceed.
+  Future<bool> _confirmBeforeSave() async {
+    // F11: turning off the trainee's active plan leaves them with no program.
+    if (widget.isEdit && (widget.plan?.isActive ?? false) && !_isActive) {
+      if (!await _confirmDialog(
+        'deactivate_active_plan_title',
+        'deactivate_active_plan_message',
+      )) {
+        return false;
+      }
+    }
+    // F14: an active plan whose days are all unscheduled shows the trainee a
+    // perpetual "rest day".
+    final noneScheduled =
+        _days.isNotEmpty && _days.every((d) => d.scheduledDay == null);
+    if (_isActive && noneScheduled) {
+      if (!await _confirmDialog(
+        'no_scheduled_days_title',
+        'no_scheduled_days_message',
+      )) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   Future<bool> _confirmDiscard() async {
     if (!_dirty) return true;
     final result = await showDialog<bool>(
@@ -284,6 +331,7 @@ class _WorkoutPlanBuilderScreenState extends State<WorkoutPlanBuilderScreen> {
                   ? 'workout_plan_updated'.tr()
                   : 'workout_plan_created'.tr(),
               onValidate: () => _syncAndValidate(cubit),
+              onConfirm: _confirmBeforeSave,
               onSubmit: () => widget.isEdit
                   ? cubit.updateWorkoutPlan()
                   : cubit.createWorkoutPlan(),
@@ -464,6 +512,10 @@ class _SaveBar extends StatelessWidget {
   final String label;
   final String successMessage;
   final String? Function() onValidate;
+
+  /// Async confirmation after validation passes and before submit (F14 warning).
+  /// Returns false to abort the save.
+  final Future<bool> Function() onConfirm;
   final Future<Result> Function() onSubmit;
   final VoidCallback onSuccess;
 
@@ -471,6 +523,7 @@ class _SaveBar extends StatelessWidget {
     required this.label,
     required this.successMessage,
     required this.onValidate,
+    required this.onConfirm,
     required this.onSubmit,
     required this.onSuccess,
   });
@@ -504,7 +557,7 @@ class _SaveBar extends StatelessWidget {
               );
               return false;
             }
-            return true;
+            return await onConfirm();
           },
           useCaseCallBack: (_) => onSubmit(),
           onSuccess: (_) {

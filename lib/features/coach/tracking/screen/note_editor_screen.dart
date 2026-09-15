@@ -3,6 +3,8 @@ import 'package:coachappmobile/core/constant/app_design_system.dart';
 import 'package:coachappmobile/core/results/result.dart';
 import 'package:coachappmobile/core/ui/widgets/modern/modern_components.dart';
 import 'package:coachappmobile/core/ui/widgets/unsaved_changes_guard.dart';
+import 'package:coachappmobile/features/auth/constants/coachapp_permissions.dart';
+import 'package:coachappmobile/features/auth/cubit/session_cubit.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -116,6 +118,13 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
   @override
   Widget build(BuildContext context) {
     final cubit = context.read<NotesCubit>();
+    final session = context.read<SessionCubit>();
+    // F8: gate affordances on the granular permissions. A coach with only the
+    // default (view) permission can read the note but not save/delete it.
+    final canEdit = widget.isEdit
+        ? session.can(CoachPermissions.notesUpdate)
+        : session.can(CoachPermissions.notesCreate);
+    final canDelete = session.can(CoachPermissions.notesDelete);
     final m = _date.month.toString().padLeft(2, '0');
     final d = _date.day.toString().padLeft(2, '0');
     return UnsavedChangesGuard(
@@ -131,8 +140,35 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
               child: ListView(
                 padding: EdgeInsets.all(AppDesignSystem.spacingMD.w),
                 children: [
+                  // F17 (PD7 V1): notes are one-way but trainee-visible — make that explicit.
+                  Container(
+                    padding: EdgeInsets.all(AppDesignSystem.spacingSM.w),
+                    decoration: BoxDecoration(
+                      color: AppDesignSystem.neutral100,
+                      borderRadius: BorderRadius.circular(AppDesignSystem.radiusMD.r),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.visibility_outlined,
+                          size: AppDesignSystem.iconSizeSM.sp,
+                          color: AppDesignSystem.infoColor,
+                        ),
+                        SizedBox(width: AppDesignSystem.spacingSM.w),
+                        Expanded(
+                          child: Text(
+                            'note_visible_to_trainee'.tr(),
+                            style: AppDesignSystem.bodySmall.copyWith(
+                              color: AppDesignSystem.neutral700,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: AppDesignSystem.spacingMD.h),
                   InkWell(
-                    onTap: _pickDate,
+                    onTap: canEdit ? _pickDate : null,
                     borderRadius: BorderRadius.circular(
                       AppDesignSystem.radiusMD.r,
                     ),
@@ -173,8 +209,9 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
                     controller: _text,
                     maxLines: 8,
                     minLines: 4,
+                    enabled: canEdit,
                   ),
-                  if (widget.isEdit) ...[
+                  if (widget.isEdit && canDelete) ...[
                     SizedBox(height: AppDesignSystem.spacingLG.h),
                     AppButton(
                       text: 'delete_note'.tr(),
@@ -187,12 +224,13 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
                 ],
               ),
             ),
-            _SaveBar(
-              onValidate: _validate,
-              onSubmit: () => widget.isEdit
-                  ? cubit.updateNote(_build(cubit))
-                  : cubit.createNote(_build(cubit)),
-              onSuccess: () {
+            if (canEdit)
+              _SaveBar(
+                onValidate: _validate,
+                onSubmit: () => widget.isEdit
+                    ? cubit.updateNote(_build(cubit))
+                    : cubit.createNote(_build(cubit)),
+                onSuccess: () {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text('note_saved'.tr()),

@@ -23,6 +23,12 @@ class MacroSummaryCard extends StatelessWidget {
   final double? targetFatG;
   final bool isEstimate;
 
+  /// Optional localization key for the card title. When null it falls back to
+  /// "Macro Totals" (plan totals) or "Estimate" ([isEstimate]). Callers showing
+  /// CONSUMED intake (e.g. Today) pass a key like `todays_intake` so intake is
+  /// never mislabeled as plan totals (F15).
+  final String? titleKey;
+
   const MacroSummaryCard({
     super.key,
     required this.calories,
@@ -34,6 +40,7 @@ class MacroSummaryCard extends StatelessWidget {
     this.targetCarbsG,
     this.targetFatG,
     this.isEstimate = false,
+    this.titleKey,
   });
 
   // Macro colour coding (sourced from the design system, never hardcoded hex).
@@ -55,7 +62,8 @@ class MacroSummaryCard extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  (isEstimate ? 'macro_estimate' : 'macro_totals').tr(),
+                  (titleKey ?? (isEstimate ? 'macro_estimate' : 'macro_totals'))
+                      .tr(),
                   style: AppDesignSystem.h6.copyWith(
                     color: AppDesignSystem.neutral900,
                   ),

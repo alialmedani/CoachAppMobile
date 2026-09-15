@@ -17,6 +17,10 @@ class CoachAppPermissions {
 class CoachPermissions {
   CoachPermissions._();
 
+  /// Common prefix of every coach-side policy. Used to detect "any coach
+  /// capability" for role routing (F20).
+  static const String coachPrefix = 'CoachApp.Coach.';
+
   // Trainees
   static const String trainees = 'CoachApp.Coach.Trainees';
   static const String traineesCreate = 'CoachApp.Coach.Trainees.Create';

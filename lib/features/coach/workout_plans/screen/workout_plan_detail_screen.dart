@@ -96,6 +96,31 @@ class _WorkoutPlanDetailScreenState extends State<WorkoutPlanDetailScreen> {
   }
 
   Future<void> _setActive(WorkoutPlanCubit cubit, WorkoutPlanModel plan) async {
+    // F14: activating a plan whose days are all unscheduled leaves the trainee
+    // on a perpetual "rest day" — warn (but don't block) before activating.
+    final noneScheduled =
+        plan.days.isNotEmpty && plan.days.every((d) => d.scheduledDay == null);
+    if (noneScheduled) {
+      final proceed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text('no_scheduled_days_title'.tr()),
+          content: Text('no_scheduled_days_message'.tr()),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text('cancel'.tr()),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text('continue_anyway'.tr()),
+            ),
+          ],
+        ),
+      );
+      if (proceed != true) return;
+    }
+
     final result = await cubit.setActiveWorkoutPlan(plan.id ?? widget.planId);
     if (!mounted) return;
     if (result.hasDataOnly) {

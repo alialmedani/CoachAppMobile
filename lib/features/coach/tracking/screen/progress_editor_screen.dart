@@ -3,6 +3,8 @@ import 'package:coachappmobile/core/constant/app_design_system.dart';
 import 'package:coachappmobile/core/results/result.dart';
 import 'package:coachappmobile/core/ui/widgets/modern/modern_components.dart';
 import 'package:coachappmobile/core/ui/widgets/unsaved_changes_guard.dart';
+import 'package:coachappmobile/features/auth/constants/coachapp_permissions.dart';
+import 'package:coachappmobile/features/auth/cubit/session_cubit.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -164,6 +166,13 @@ class _ProgressEditorScreenState extends State<ProgressEditorScreen> {
   @override
   Widget build(BuildContext context) {
     final cubit = context.read<ProgressCubit>();
+    final session = context.read<SessionCubit>();
+    // F8: gate affordances on the granular permissions. A coach with only the
+    // default (view) permission can read the entry but not save/delete it.
+    final canEdit = widget.isEdit
+        ? session.can(CoachPermissions.progressUpdate)
+        : session.can(CoachPermissions.progressCreate);
+    final canDelete = session.can(CoachPermissions.progressDelete);
     return UnsavedChangesGuard(
       isDirty: () => _snapshot() != _initialSnapshot,
       child: Scaffold(
@@ -182,37 +191,37 @@ class _ProgressEditorScreenState extends State<ProgressEditorScreen> {
                   AppDesignSystem.spacing4XL.h,
                 ),
                 children: [
-                  _DateTile(date: _date, onTap: _pickDate),
+                  _DateTile(date: _date, onTap: _pickDate, enabled: canEdit),
                   SizedBox(height: AppDesignSystem.spacingMD.h),
                   Row(
                     children: [
-                      Expanded(child: _numField('weight_kg'.tr(), _weight)),
+                      Expanded(child: _numField('weight_kg'.tr(), _weight, canEdit)),
                       SizedBox(width: AppDesignSystem.spacingSM.w),
                       Expanded(
-                        child: _numField('body_fat_percent'.tr(), _bodyFat),
+                        child: _numField('body_fat_percent'.tr(), _bodyFat, canEdit),
                       ),
                     ],
                   ),
                   SizedBox(height: AppDesignSystem.spacingMD.h),
                   Row(
                     children: [
-                      Expanded(child: _numField('chest_cm'.tr(), _chest)),
+                      Expanded(child: _numField('chest_cm'.tr(), _chest, canEdit)),
                       SizedBox(width: AppDesignSystem.spacingSM.w),
-                      Expanded(child: _numField('waist_cm'.tr(), _waist)),
+                      Expanded(child: _numField('waist_cm'.tr(), _waist, canEdit)),
                     ],
                   ),
                   SizedBox(height: AppDesignSystem.spacingMD.h),
                   Row(
                     children: [
-                      Expanded(child: _numField('hips_cm'.tr(), _hips)),
+                      Expanded(child: _numField('hips_cm'.tr(), _hips, canEdit)),
                       SizedBox(width: AppDesignSystem.spacingSM.w),
-                      Expanded(child: _numField('arm_cm'.tr(), _arm)),
+                      Expanded(child: _numField('arm_cm'.tr(), _arm, canEdit)),
                     ],
                   ),
                   SizedBox(height: AppDesignSystem.spacingMD.h),
                   Row(
                     children: [
-                      Expanded(child: _numField('thigh_cm'.tr(), _thigh)),
+                      Expanded(child: _numField('thigh_cm'.tr(), _thigh, canEdit)),
                       const Spacer(),
                     ],
                   ),
@@ -222,8 +231,9 @@ class _ProgressEditorScreenState extends State<ProgressEditorScreen> {
                     hint: 'progress_notes_hint'.tr(),
                     controller: _notes,
                     maxLines: 2,
+                    enabled: canEdit,
                   ),
-                  if (widget.isEdit) ...[
+                  if (widget.isEdit && canDelete) ...[
                     SizedBox(height: AppDesignSystem.spacingLG.h),
                     AppButton(
                       text: 'delete_progress'.tr(),
@@ -236,39 +246,43 @@ class _ProgressEditorScreenState extends State<ProgressEditorScreen> {
                 ],
               ),
             ),
-            _SaveBar(
-              onSubmit: () => widget.isEdit
-                  ? cubit.updateEntry(_build(cubit))
-                  : cubit.createEntry(_build(cubit)),
-              onSuccess: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('progress_saved'.tr()),
-                    backgroundColor: AppDesignSystem.successColor,
-                  ),
-                );
-                Navigator.pop(context, true);
-              },
-            ),
+            if (canEdit)
+              _SaveBar(
+                onSubmit: () => widget.isEdit
+                    ? cubit.updateEntry(_build(cubit))
+                    : cubit.createEntry(_build(cubit)),
+                onSuccess: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('progress_saved'.tr()),
+                      backgroundColor: AppDesignSystem.successColor,
+                    ),
+                  );
+                  Navigator.pop(context, true);
+                },
+              ),
           ],
         ),
       ),
     );
   }
 
-  Widget _numField(String label, TextEditingController c) => AppTextField(
-    label: label,
-    controller: c,
-    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-    inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))],
-  );
+  Widget _numField(String label, TextEditingController c, bool enabled) =>
+      AppTextField(
+        label: label,
+        controller: c,
+        enabled: enabled,
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))],
+      );
 }
 
 class _DateTile extends StatelessWidget {
   final DateTime date;
   final VoidCallback onTap;
+  final bool enabled;
 
-  const _DateTile({required this.date, required this.onTap});
+  const _DateTile({required this.date, required this.onTap, this.enabled = true});
 
   @override
   Widget build(BuildContext context) {
@@ -286,7 +300,7 @@ class _DateTile extends StatelessWidget {
         ),
         SizedBox(height: AppDesignSystem.spacingXS.h),
         InkWell(
-          onTap: onTap,
+          onTap: enabled ? onTap : null,
           borderRadius: BorderRadius.circular(AppDesignSystem.radiusMD.r),
           child: Container(
             padding: EdgeInsets.all(AppDesignSystem.spacingMD.w),

@@ -288,6 +288,7 @@ class _NutritionSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         MacroSummaryCard(
+          titleKey: 'todays_intake', // F15: this card shows CONSUMED intake, not plan totals
           calories: a.consumedCalories,
           proteinG: a.consumedProteinG,
           carbsG: a.consumedCarbsG,

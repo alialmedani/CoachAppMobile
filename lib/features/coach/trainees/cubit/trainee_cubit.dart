@@ -29,7 +29,10 @@ class TraineeCubit extends Cubit<TraineeState> {
   // ---- list search / filter state -------------------------------------------
   String searchTerm = '';
   int? filterGoal;
-  bool? filterActive;
+
+  /// Roster defaults to ACTIVE trainees; deactivated trainees move under the
+  /// "Inactive" filter (null = "All"). See PD10/F19 (recoverable deactivation).
+  bool? filterActive = true;
 
   bool get hasActiveFilters =>
       searchTerm.isNotEmpty || filterGoal != null || filterActive != null;

@@ -7,6 +7,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import 'package:coachappmobile/core/di/injection.dart';
+import 'package:coachappmobile/features/auth/constants/coachapp_permissions.dart';
+import 'package:coachappmobile/features/auth/cubit/session_cubit.dart';
+import 'package:coachappmobile/features/coach/tracking/cubit/coach_dashboard_cubit.dart';
+import 'package:coachappmobile/features/coach/tracking/cubit/coach_log_cubit.dart';
+import 'package:coachappmobile/features/coach/tracking/cubit/notes_cubit.dart';
+import 'package:coachappmobile/features/coach/tracking/cubit/progress_cubit.dart';
+import 'package:coachappmobile/features/coach/tracking/screen/coach_dashboard_screen.dart';
+import 'package:coachappmobile/features/coach/tracking/screen/coach_logs_screen.dart';
+import 'package:coachappmobile/features/coach/tracking/screen/notes_screen.dart';
+import 'package:coachappmobile/features/coach/tracking/screen/progress_screen.dart';
+
 import '../cubit/trainee_cubit.dart';
 import '../data/model/trainee_model.dart';
 import 'edit_trainee_screen.dart';
@@ -211,6 +223,8 @@ class _Body extends StatelessWidget {
               ),
             ],
           ),
+          SizedBox(height: AppDesignSystem.spacingLG.h),
+          _TrackingSection(trainee: trainee),
           SizedBox(height: AppDesignSystem.spacingXL.h),
           AppButton(
             text: 'edit_profile'.tr(),
@@ -249,6 +263,159 @@ class _Body extends StatelessWidget {
     if (v == null) return '—';
     final n = v == v.roundToDouble() ? v.toInt().toString() : v.toString();
     return '$n $unit';
+  }
+}
+
+/// Permission-gated entry points into this trainee's tracking surface
+/// (dashboard, logs, progress, notes). Each opens a screen scoped to the
+/// trainee with its own feature cubit.
+class _TrackingSection extends StatelessWidget {
+  final TraineeModel trainee;
+
+  const _TrackingSection({required this.trainee});
+
+  void _open(BuildContext context, Widget child) {
+    Navigator.push(context, MaterialPageRoute(builder: (_) => child));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final session = context.read<SessionCubit>();
+    final id = trainee.id ?? '';
+    final name = trainee.fullName;
+    final tiles = <Widget>[];
+
+    if (session.can(CoachPermissions.tracking)) {
+      tiles.add(
+        _TrackingTile(
+          icon: Icons.dashboard_outlined,
+          label: 'coach_dashboard'.tr(),
+          onTap: () => _open(
+            context,
+            BlocProvider(
+              create: (_) => getIt<CoachDashboardCubit>(),
+              child: CoachDashboardScreen(traineeId: id, traineeName: name),
+            ),
+          ),
+        ),
+      );
+      tiles.add(
+        _TrackingTile(
+          icon: Icons.receipt_long_outlined,
+          label: 'logs'.tr(),
+          onTap: () => _open(
+            context,
+            BlocProvider(
+              create: (_) => getIt<CoachLogCubit>(),
+              child: CoachLogsScreen(traineeId: id, traineeName: name),
+            ),
+          ),
+        ),
+      );
+    }
+    if (session.can(CoachPermissions.progress)) {
+      tiles.add(
+        _TrackingTile(
+          icon: Icons.insights_outlined,
+          label: 'progress'.tr(),
+          onTap: () => _open(
+            context,
+            BlocProvider(
+              create: (_) => getIt<ProgressCubit>(),
+              child: ProgressScreen(traineeId: id, traineeName: name),
+            ),
+          ),
+        ),
+      );
+    }
+    if (session.can(CoachPermissions.notes)) {
+      tiles.add(
+        _TrackingTile(
+          icon: Icons.sticky_note_2_outlined,
+          label: 'notes'.tr(),
+          onTap: () => _open(
+            context,
+            BlocProvider(
+              create: (_) => getIt<NotesCubit>(),
+              child: NotesScreen(traineeId: id, traineeName: name),
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (tiles.isEmpty) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: EdgeInsetsDirectional.only(
+            start: AppDesignSystem.spacingXS.w,
+            bottom: AppDesignSystem.spacingXS.h,
+          ),
+          child: Text(
+            'tracking'.tr(),
+            style: AppDesignSystem.labelMedium.copyWith(
+              color: AppDesignSystem.neutral500,
+            ),
+          ),
+        ),
+        ...tiles,
+      ],
+    );
+  }
+}
+
+class _TrackingTile extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  const _TrackingTile({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      margin: EdgeInsets.only(bottom: AppDesignSystem.spacingSM.h),
+      onTap: onTap,
+      child: Row(
+        children: [
+          Container(
+            width: 40.w,
+            height: 40.w,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: AppDesignSystem.primarySurface,
+              borderRadius: BorderRadius.circular(AppDesignSystem.radiusMD.r),
+            ),
+            child: Icon(
+              icon,
+              color: AppDesignSystem.primaryDark,
+              size: AppDesignSystem.iconSizeSM.sp,
+            ),
+          ),
+          SizedBox(width: AppDesignSystem.spacingMD.w),
+          Expanded(
+            child: Text(
+              label,
+              style: AppDesignSystem.bodyLarge.copyWith(
+                color: AppDesignSystem.neutral900,
+                fontWeight: AppDesignSystem.medium,
+              ),
+            ),
+          ),
+          Icon(
+            Icons.chevron_right,
+            color: AppDesignSystem.neutral400,
+            size: AppDesignSystem.iconSizeSM.sp,
+          ),
+        ],
+      ),
+    );
   }
 }
 

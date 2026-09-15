@@ -7,6 +7,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../data/model/meal_item_model.dart';
 import '../../data/model/meal_model.dart';
 import 'meal_item_entry_sheet.dart';
+import 'serving_display.dart';
 
 /// Editable card for one [MealModel] in the builder: meal name and a reorderable
 /// list of food-item rows. All edits are pushed up through [onChanged];
@@ -256,12 +257,13 @@ class _MealItemRow extends StatelessWidget {
   }
 
   List<Widget> _summaryChips() {
-    final unit = item.servingUnit;
     return [
       AppBadge(
-        text: unit != null && unit.isNotEmpty
-            ? 'quantity_x_unit'.tr(args: [_n(item.quantity), unit])
-            : 'quantity_servings_value'.tr(args: [_n(item.quantity)]),
+        text: ServingDisplay.compact(
+          item.quantity,
+          item.servingSize,
+          item.servingUnit,
+        ),
         variant: AppBadgeVariant.primary,
         size: AppBadgeSize.small,
       ),

@@ -2,6 +2,9 @@ import 'package:coachappmobile/core/boilerplate/get_model/cubits/get_model_cubit
 import 'package:coachappmobile/core/boilerplate/get_model/widgets/get_model.dart';
 import 'package:coachappmobile/core/constant/app_design_system.dart';
 import 'package:coachappmobile/core/ui/widgets/modern/modern_components.dart';
+import 'package:coachappmobile/features/auth/constants/coachapp_permissions.dart';
+import 'package:coachappmobile/features/auth/cubit/session_cubit.dart';
+import 'package:coachappmobile/features/coach/nutrition_plan_templates/screen/widgets/save_nutrition_plan_as_template_sheet.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -33,6 +36,9 @@ class _NutritionPlanDetailScreenState extends State<NutritionPlanDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final cubit = context.read<NutritionPlanCubit>();
+    final canSaveAsTemplate = context.read<SessionCubit>().can(
+      CoachPermissions.nutritionPlanTemplatesCreate,
+    );
     // System/gesture back must carry `_changed` back to the list (like the
     // leading button does) so the list refreshes after a set-active/edit;
     // a plain implicit pop returns null and would leave the list stale.
@@ -58,9 +64,20 @@ class _NutritionPlanDetailScreenState extends State<NutritionPlanDetailScreen> {
             plan: plan,
             onEdit: () => _edit(cubit, plan),
             onSetActive: () => _setActive(cubit, plan),
+            onSaveAsTemplate: canSaveAsTemplate
+                ? () => _saveAsTemplate(plan)
+                : null,
           ),
         ),
       ),
+    );
+  }
+
+  Future<void> _saveAsTemplate(NutritionPlanModel plan) async {
+    await showSaveNutritionPlanAsTemplateSheet(
+      context,
+      planId: plan.id ?? widget.planId,
+      planName: plan.name ?? '',
     );
   }
 
@@ -110,11 +127,13 @@ class _Body extends StatelessWidget {
   final NutritionPlanModel plan;
   final VoidCallback onEdit;
   final VoidCallback onSetActive;
+  final VoidCallback? onSaveAsTemplate;
 
   const _Body({
     required this.plan,
     required this.onEdit,
     required this.onSetActive,
+    this.onSaveAsTemplate,
   });
 
   @override
@@ -207,6 +226,16 @@ class _Body extends StatelessWidget {
               variant: AppButtonVariant.outline,
               fullWidth: true,
               onPressed: onSetActive,
+            ),
+          ],
+          if (onSaveAsTemplate != null) ...[
+            SizedBox(height: AppDesignSystem.spacingSM.h),
+            AppButton(
+              text: 'save_as_template'.tr(),
+              icon: Icons.bookmark_add_outlined,
+              variant: AppButtonVariant.ghost,
+              fullWidth: true,
+              onPressed: onSaveAsTemplate,
             ),
           ],
           SizedBox(height: AppDesignSystem.spacingXL.h),

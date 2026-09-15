@@ -2,17 +2,23 @@ import '../../../foods/data/model/food_model.dart';
 
 /// A single food entry inside a meal (mirrors backend `MealItemDto`).
 ///
-/// [foodName] and [servingUnit] are read-only display data enriched by the
-/// server from the food library; they are never sent back on write. [quantity]
-/// is the number of the food's servings. The macro fields
-/// ([calories]/[proteinG]/[carbsG]/[fatG]) are **read-only computed values**
-/// (food per-serving × [quantity]); the server recomputes them on save, so they
-/// are excluded from [toWriteJson]. Decimals are parsed via `(num?)?.toDouble()`.
+/// [foodName], [servingUnit] and [servingSize] are read-only display data
+/// enriched by the server from the food library; they are never sent back on
+/// write. [quantity] is the **number of servings** — the real amount the trainee
+/// eats is `quantity × servingSize servingUnit` (e.g. 2 × 100 g = 200 g). The
+/// macro fields ([calories]/[proteinG]/[carbsG]/[fatG]) are **read-only computed
+/// values** (food per-serving × [quantity]); the server recomputes them on save,
+/// so they are excluded from [toWriteJson]. Decimals are parsed via
+/// `(num?)?.toDouble()`.
 class MealItemModel {
   final String? id;
   final String? foodId;
   final String? foodName;
   final String? servingUnit;
+
+  /// Grams (or [servingUnit]s) in one serving of the food, e.g. 100. The real
+  /// amount for this item is `quantity × servingSize`.
+  final double servingSize;
   final double quantity;
   final int order;
   final double calories;
@@ -25,6 +31,7 @@ class MealItemModel {
     this.foodId,
     this.foodName,
     this.servingUnit,
+    this.servingSize = 0,
     this.quantity = 1,
     this.order = 0,
     this.calories = 0,
@@ -39,6 +46,7 @@ class MealItemModel {
       foodId: json['foodId']?.toString(),
       foodName: json['foodName'],
       servingUnit: json['servingUnit'],
+      servingSize: (json['servingSize'] as num?)?.toDouble() ?? 0,
       quantity: (json['quantity'] as num?)?.toDouble() ?? 1,
       order: json['order'] ?? 0,
       calories: (json['calories'] as num?)?.toDouble() ?? 0,
@@ -62,6 +70,7 @@ class MealItemModel {
       foodId: food.id,
       foodName: food.name,
       servingUnit: food.servingUnit,
+      servingSize: food.servingSize,
       quantity: quantity,
       order: order,
       calories: food.calories * quantity,
@@ -77,6 +86,7 @@ class MealItemModel {
       'foodId': foodId,
       'foodName': foodName,
       'servingUnit': servingUnit,
+      'servingSize': servingSize,
       'quantity': quantity,
       'order': order,
       'calories': calories,
@@ -98,6 +108,7 @@ class MealItemModel {
     String? foodId,
     String? foodName,
     String? servingUnit,
+    double? servingSize,
     double? quantity,
     int? order,
     double? calories,
@@ -110,6 +121,7 @@ class MealItemModel {
       foodId: foodId ?? this.foodId,
       foodName: foodName ?? this.foodName,
       servingUnit: servingUnit ?? this.servingUnit,
+      servingSize: servingSize ?? this.servingSize,
       quantity: quantity ?? this.quantity,
       order: order ?? this.order,
       calories: calories ?? this.calories,

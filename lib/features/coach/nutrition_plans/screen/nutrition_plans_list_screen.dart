@@ -2,6 +2,7 @@ import 'package:coachappmobile/core/boilerplate/pagination/cubits/pagination_cub
 import 'package:coachappmobile/core/boilerplate/pagination/widgets/pagination_list.dart';
 import 'package:coachappmobile/core/constant/app_design_system.dart';
 import 'package:coachappmobile/core/ui/widgets/modern/modern_components.dart';
+import 'package:coachappmobile/core/utils/functions/debouncer.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -40,6 +41,7 @@ class NutritionPlansListScreen extends StatefulWidget {
 
 class _NutritionPlansListScreenState extends State<NutritionPlansListScreen> {
   final TextEditingController _searchController = TextEditingController();
+  final Debouncer _searchDebouncer = Debouncer();
   PaginationCubit? _pagination;
 
   @override
@@ -50,11 +52,21 @@ class _NutritionPlansListScreenState extends State<NutritionPlansListScreen> {
 
   @override
   void dispose() {
+    _searchDebouncer.cancel();
     _searchController.dispose();
     super.dispose();
   }
 
   void _refresh() => _pagination?.getList();
+
+  /// Store the term immediately (keeps the clear button in sync) but debounce
+  /// the backend re-fetch so it fires once the user pauses, not per keystroke.
+  void _onSearchChanged(NutritionPlanCubit cubit, String value) {
+    cubit.setSearchTerm(value);
+    _searchDebouncer.run(() {
+      if (mounted) _refresh();
+    });
+  }
 
   Future<void> _openCreate(NutritionPlanCubit cubit) async {
     cubit.prepareCreate(traineeId: widget.traineeId);
@@ -180,9 +192,8 @@ class _NutritionPlansListScreenState extends State<NutritionPlansListScreen> {
   }
 
   void _snack(String message, Color color) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: color),
-    );
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message), backgroundColor: color));
   }
 
   @override
@@ -219,10 +230,7 @@ class _NutritionPlansListScreenState extends State<NutritionPlansListScreen> {
                   AppTextField(
                     hint: 'search_nutrition_plans'.tr(),
                     controller: _searchController,
-                    onChanged: (v) {
-                      cubit.setSearchTerm(v);
-                      _refresh();
-                    },
+                    onChanged: (v) => _onSearchChanged(cubit, v),
                     prefixIcon: Icon(
                       Icons.search,
                       size: AppDesignSystem.iconSizeSM.sp,
@@ -237,6 +245,7 @@ class _NutritionPlansListScreenState extends State<NutritionPlansListScreen> {
                             onPressed: () {
                               _searchController.clear();
                               cubit.setSearchTerm('');
+                              _searchDebouncer.cancel();
                               _refresh();
                             },
                           )

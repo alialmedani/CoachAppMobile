@@ -6,6 +6,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../data/model/meal_item_model.dart';
 import 'food_picker_sheet.dart';
+import 'serving_display.dart';
 
 /// Opens a bottom sheet to add or edit a single [MealItemModel] entry: pick a
 /// food, set a serving quantity, and preview the item's macros (food per-serving
@@ -44,6 +45,7 @@ class _MealItemEntrySheetState extends State<_MealItemEntrySheet> {
   String? _foodId;
   String? _foodName;
   String? _servingUnit;
+  double _servingSize = 0;
   // Per-serving macros for the picked food (drive the live estimate).
   double _perCalories = 0;
   double _perProteinG = 0;
@@ -57,6 +59,7 @@ class _MealItemEntrySheetState extends State<_MealItemEntrySheet> {
     _foodId = e?.foodId;
     _foodName = e?.foodName;
     _servingUnit = e?.servingUnit;
+    _servingSize = e?.servingSize ?? 0;
     _quantity = TextEditingController(
       text: e != null ? _trimNum(e.quantity) : '1',
     );
@@ -87,6 +90,7 @@ class _MealItemEntrySheetState extends State<_MealItemEntrySheet> {
         _foodId = food.id;
         _foodName = food.name;
         _servingUnit = food.servingUnit;
+        _servingSize = food.servingSize;
         _perCalories = food.calories;
         _perProteinG = food.proteinG;
         _perCarbsG = food.carbsG;
@@ -115,6 +119,7 @@ class _MealItemEntrySheetState extends State<_MealItemEntrySheet> {
       foodId: _foodId,
       foodName: _foodName,
       servingUnit: _servingUnit,
+      servingSize: _servingSize,
       quantity: q,
       order: widget.initial?.order ?? 0,
       calories: _perCalories * q,
@@ -130,7 +135,9 @@ class _MealItemEntrySheetState extends State<_MealItemEntrySheet> {
     final q = _quantityValue;
     final hasFood = _foodId != null && _foodId!.isNotEmpty;
     return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
       child: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -169,17 +176,39 @@ class _MealItemEntrySheetState extends State<_MealItemEntrySheet> {
                       keyboardType: const TextInputType.numberWithOptions(
                         decimal: true,
                       ),
+                      textInputAction: TextInputAction.done,
                       onChanged: (_) => setState(() {}),
                       validator: _validateQuantity,
                     ),
                     if (_servingUnit != null && _servingUnit!.isNotEmpty) ...[
                       SizedBox(height: AppDesignSystem.spacingXS.h),
                       Text(
-                        'serving_unit_hint'.tr(args: [_servingUnit!]),
+                        'serving_unit_hint'.tr(
+                          args: [_trimNum(_servingSize), _servingUnit!],
+                        ),
                         style: AppDesignSystem.bodySmall.copyWith(
                           color: AppDesignSystem.neutral500,
                         ),
                       ),
+                      if (ServingDisplay.resolvedAmount(
+                            q,
+                            _servingSize,
+                            _servingUnit,
+                          ) !=
+                          null) ...[
+                        SizedBox(height: AppDesignSystem.spacing2XS.h),
+                        Text(
+                          ServingDisplay.resolvedAmount(
+                            q,
+                            _servingSize,
+                            _servingUnit,
+                          )!,
+                          style: AppDesignSystem.labelMedium.copyWith(
+                            color: AppDesignSystem.neutral700,
+                            fontWeight: AppDesignSystem.semiBold,
+                          ),
+                        ),
+                      ],
                     ],
                     if (hasFood) ...[
                       SizedBox(height: AppDesignSystem.spacingMD.h),

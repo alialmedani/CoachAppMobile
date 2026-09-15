@@ -3,6 +3,7 @@ import 'package:coachappmobile/core/boilerplate/pagination/widgets/pagination_li
 import 'package:coachappmobile/core/constant/app_design_system.dart';
 import 'package:coachappmobile/core/di/injection.dart';
 import 'package:coachappmobile/core/ui/widgets/modern/modern_components.dart';
+import 'package:coachappmobile/core/utils/functions/debouncer.dart';
 import 'package:coachappmobile/features/coach/foods/cubit/food_cubit.dart';
 import 'package:coachappmobile/features/coach/foods/data/model/food_model.dart';
 import 'package:easy_localization/easy_localization.dart';
@@ -40,15 +41,26 @@ class _FoodPickerSheet extends StatefulWidget {
 
 class _FoodPickerSheetState extends State<_FoodPickerSheet> {
   final TextEditingController _searchController = TextEditingController();
+  final Debouncer _searchDebouncer = Debouncer();
   PaginationCubit? _pagination;
 
   @override
   void dispose() {
+    _searchDebouncer.cancel();
     _searchController.dispose();
     super.dispose();
   }
 
   void _refresh() => _pagination?.getList();
+
+  /// Store the term immediately but debounce the re-fetch so it fires once the
+  /// user pauses, not per keystroke.
+  void _onSearchChanged(FoodCubit cubit, String value) {
+    cubit.setSearchTerm(value);
+    _searchDebouncer.run(() {
+      if (mounted) _refresh();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -70,10 +82,7 @@ class _FoodPickerSheetState extends State<_FoodPickerSheet> {
               child: AppTextField(
                 hint: 'search_foods'.tr(),
                 controller: _searchController,
-                onChanged: (v) {
-                  cubit.setSearchTerm(v);
-                  _refresh();
-                },
+                onChanged: (v) => _onSearchChanged(cubit, v),
                 prefixIcon: Icon(
                   Icons.search,
                   size: AppDesignSystem.iconSizeSM.sp,

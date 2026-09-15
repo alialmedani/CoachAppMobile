@@ -3,6 +3,7 @@ import 'package:coachappmobile/core/di/injection.dart';
 import 'package:coachappmobile/core/ui/widgets/animated_notch_navigation_bar.dart';
 import 'package:coachappmobile/features/auth/constants/coachapp_permissions.dart';
 import 'package:coachappmobile/features/auth/cubit/session_cubit.dart';
+import 'package:coachappmobile/features/coach/dashboard/screen/coach_dashboard_screen.dart';
 import 'package:coachappmobile/features/coach/exercises/cubit/exercise_cubit.dart';
 import 'package:coachappmobile/features/coach/foods/cubit/food_cubit.dart';
 import 'package:coachappmobile/features/coach/library/library_screen.dart';
@@ -15,7 +16,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'widgets/shell_account_screen.dart';
-import 'widgets/shell_placeholder_screen.dart';
 import 'widgets/shell_tab.dart';
 
 /// Coach role home shell.
@@ -51,10 +51,9 @@ class _CoachShellState extends State<CoachShell> {
   List<ShellTab> _buildTabs(SessionCubit session) {
     final tabs = <ShellTab>[];
 
-    // Dashboard — coach overview / tracking landing.
-    // TODO(Phase 3): replace with the real coach dashboard screen.
+    // Dashboard — coach overview / quick-access landing.
     if (session.can(CoachPermissions.tracking)) {
-      tabs.add(_dashboardTab);
+      tabs.add(_buildDashboardTab());
     }
 
     // Trainees list.
@@ -99,6 +98,10 @@ class _CoachShellState extends State<CoachShell> {
         canNutritionPlans ||
         session.can(CoachPermissions.workoutPlanTemplates) ||
         session.can(CoachPermissions.nutritionPlanTemplates)) {
+      // With plan perms: the full segmented plan lists (cubits provided here).
+      // Templates-only (no plan perms but a template perm): render PlansScreen
+      // collapsed — it surfaces an "Open Templates" entry instead of a dead
+      // placeholder (F6). No plan cubits are needed since no plan list renders.
       final Widget plansBody = (canWorkoutPlans || canNutritionPlans)
           ? MultiBlocProvider(
               providers: [
@@ -110,10 +113,7 @@ class _CoachShellState extends State<CoachShell> {
                 showNutrition: canNutritionPlans,
               ),
             )
-          : const ShellPlaceholderScreen(
-              titleKey: 'tab_plans',
-              icon: Icons.assignment_outlined,
-            );
+          : const PlansScreen(showWorkout: false, showNutrition: false);
       tabs.add(
         ShellTab(
           labelKey: 'tab_plans',
@@ -126,7 +126,7 @@ class _CoachShellState extends State<CoachShell> {
 
     // Guarantee at least one content tab even for a permission-less coach.
     if (tabs.isEmpty) {
-      tabs.add(_dashboardTab);
+      tabs.add(_buildDashboardTab());
     }
 
     // More — always present; holds profile / settings / logout.
@@ -142,14 +142,18 @@ class _CoachShellState extends State<CoachShell> {
     return tabs;
   }
 
-  static const ShellTab _dashboardTab = ShellTab(
+  /// Switch to the tab whose [ShellTab.labelKey] matches — used by the coach
+  /// dashboard's quick-access cards to jump into a sibling tab.
+  void _openTabByLabel(String labelKey) {
+    final i = _tabs.indexWhere((t) => t.labelKey == labelKey);
+    if (i >= 0 && mounted) setState(() => _index = i);
+  }
+
+  ShellTab _buildDashboardTab() => ShellTab(
     labelKey: 'tab_dashboard',
     activeIcon: Icons.dashboard,
     inactiveIcon: Icons.dashboard_outlined,
-    body: ShellPlaceholderScreen(
-      titleKey: 'tab_dashboard',
-      icon: Icons.dashboard_outlined,
-    ),
+    body: CoachDashboardScreen(onOpenTab: _openTabByLabel),
   );
 
   @override

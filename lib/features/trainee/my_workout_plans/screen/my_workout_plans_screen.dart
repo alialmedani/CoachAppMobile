@@ -1,7 +1,10 @@
 import 'package:coachappmobile/core/boilerplate/get_model/widgets/get_model.dart';
 import 'package:coachappmobile/core/constant/app_design_system.dart';
+import 'package:coachappmobile/core/di/injection.dart';
 import 'package:coachappmobile/core/ui/widgets/modern/modern_components.dart';
 import 'package:coachappmobile/features/coach/workout_plans/data/model/workout_plan_model.dart';
+import 'package:coachappmobile/features/trainee/workout_logs/cubit/workout_log_cubit.dart';
+import 'package:coachappmobile/features/trainee/workout_logs/screen/workout_log_history_screen.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -23,7 +26,26 @@ class MyWorkoutPlansScreen extends StatelessWidget {
     final cubit = context.read<MyWorkoutPlanCubit>();
     return Scaffold(
       backgroundColor: AppDesignSystem.surfaceLight,
-      appBar: embedded ? null : AppTopBar(title: 'my_workout_plans'.tr()),
+      appBar: embedded
+          ? null
+          : AppTopBar(
+              title: 'my_workout_plans'.tr(),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.history),
+                  tooltip: 'workout_history'.tr(),
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => BlocProvider(
+                        create: (_) => getIt<WorkoutLogCubit>(),
+                        child: const WorkoutLogHistoryScreen(),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
       body: GetModel<List<WorkoutPlanModel>>(
         useCaseCallBack: () => cubit.fetchMyWorkoutPlans(),
         modelBuilder: (plans) {

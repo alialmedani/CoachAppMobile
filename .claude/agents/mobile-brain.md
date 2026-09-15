@@ -46,16 +46,42 @@ docs true.
 4. **The backend** — `C:\src\BACK\CoachApp` (ABP). Read the real DTOs/AppServices/permissions so a
    slice maps to endpoints that actually exist. Never invent backend routes.
 
-### Remember the repo is transitional [[mobile-scaffold-state]]
-**Done:** `lib/core` is ported from the reference and `dart analyze` clean; package is
-`coachappmobile`; `pubspec.yaml`, `assets/` (fonts + `translations/`) and `firebase_options.dart` are
-in place; five feature-coupled files are parked in `reference_pending/`. **Still pending:** `main.dart`
-is the default counter; `api_url.dart` points at JasimExpress; Firebase needs a CoachApp
-`flutterfire configure` + native config; there are no `lib/features/` yet; the delivery/merchant/driver
-content in the guides is **legacy** — the real domain is **coaching** (Trainee, WorkoutPlan,
-NutritionPlan, Exercise, Food, ProgressEntry, Dashboard). Factor the [Known cleanup backlog](../../CLAUDE.md)
-into plans: a feature slice that needs auth/networking may be blocked until `api_url` is repointed and
-`main.dart` is wired.
+### Remember the repo state [[mobile-scaffold-state]]
+`lib/core` is ported from the reference and `dart analyze` clean; package is `coachappmobile`;
+`pubspec.yaml`, `assets/`, `firebase_options.dart` in place; five feature-coupled files parked in
+`reference_pending/`. **`main.dart` and `api_url.dart` are done** (ShadApp-above-`MaterialApp` root;
+`baseUrl` → CoachApp `10.0.2.2:44370`; `__tenant` header). **Built & verified on-device** under
+`lib/features/`: auth/session + role shells (P1–2), the **Coach authoring** side (P4–8: Trainees,
+Exercise/Food libraries, Workout/Nutrition plan builders), the **Trainee** experience (P12–16: My
+Plans, Today, workout/nutrition logging, and **my dashboard/progress/notes/profile + change password**),
+and **Coach tracking** (P10–11: dashboard / logs / progress / notes via a Tracking section on the
+trainee-detail screen; shared `DashboardCards`, `WorkoutLogView`/`NutritionLogView`, `ProgressTrendChart`).
+P16 reuses `DashboardCards` + `ProgressTrendChart` + the coach `TraineeModel`; trainee progress is
+list/add/delete only (**no edit** — no backend My-progress update), notes are read-only (`GET /my-note`,
+singular), and change password hits ABP `POST /api/account/my-profile/change-password`. **The full core
+product loop (P1–16) is now built & verified on-device, and Coach Templates (P9) is now built too**
+(`lib/features/coach/{workout,nutrition}_plan_templates/` + `.../templates/templates_screen.dart`:
+list/detail/create/delete, clone-template→trainee [creates an **inactive** plan, gated by `*Plans.Create`],
+save-plan-as-template [gated by `*PlanTemplates.Create`]; template DTOs = plan DTOs minus
+`traineeId`/`isActive`, so it **reuses the plan models + viewers**; entry = a Templates action on the
+coach Plans tab). **Still pending:** Firebase needs a CoachApp
+`flutterfire configure` + native config — but debug builds/runs work without it (`Firebase.initializeApp()`
+isn't called yet). The delivery/merchant/driver content in the guides is **legacy** — the real domain is
+**coaching** (Trainee, WorkoutPlan, NutritionPlan, Exercise, Food, ProgressEntry, Dashboard). What's
+left is in the [Known cleanup backlog](../../CLAUDE.md): deferred manual off-plan logging & history
+lists, and remaining **P17/P18** polish.
+The **UnsavedChangesGuard is done on ALL editors** (`core/ui/widgets/unsaved_changes_guard.dart` —
+create/edit forms + plan builders + the workout/nutrition log editors), and **P19 Security A+B+C** is
+done (secure token storage, single-flight refresh, logout revocation+cleanup, release log/URL guards,
+R8, 401→login) and **search debounce** is done (`core/utils/functions/debouncer.dart`, 400ms, on the
+coach Exercises/Foods/Nutrition-plans lists + food/exercise/trainee picker sheets) and **error states +
+retry** are done (`core/ui/widgets/modern/app_error_state.dart` is the default error widget in
+`GetModel` + `PaginationList`; `PaginationCubit` splits initial-load `Error` from `LoadMoreError`) and
+**keyboard handling** is done (`textInputAction` Next→Done chains on the log editors, plan-builder entry
+sheets, nutrition targets, and change-password; numeric keyboards + keyboard-avoiding scroll were already
+correct). What's still open: network-failure banners + offline read-cache, accessibility,
+form-state-on-rotation, and the P17 tail (language switcher, `intl` formatting). Deferred **P19 Phase D**:
+FLAG_SECURE, cert pinning, crash reporting, PrettyDioLogger cleanup, firebase_options regen.
 
 ## The specialists you route to
 - **mobile-feature** — builds a full vertical slice (model → params/usecase → repository → cubit →

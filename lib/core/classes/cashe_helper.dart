@@ -1,4 +1,5 @@
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:coachappmobile/core/classes/secure_store.dart';
 import 'package:coachappmobile/core/constant/end_points/cashe_helper_constant.dart';
 
 class CacheHelper {
@@ -8,6 +9,14 @@ class CacheHelper {
   static Box<dynamic>? _currentUserBox;
   static Box<dynamic>? _settingBox;
   static bool _isInitialized = false;
+
+  // Sensitive credentials (access + refresh token) live in the platform secure
+  // store, NOT in the plaintext Hive box. These in-memory copies back the
+  // synchronous [token]/[refreshtoken] getters that the request pipeline relies
+  // on; they are hydrated from secure storage in [init] before the first frame
+  // and kept in lock-step on every write/clear.
+  static String? _accessTokenValue;
+  static String? _refreshTokenValue;
 
   static Box<dynamic> get box {
     if (_box == null) {
@@ -62,21 +71,54 @@ class CacheHelper {
       _currentUserBox = await Hive.openBox("current_user_box");
       _settingBox = await Hive.openBox("setting_box");
       _isInitialized = true;
+      await _hydrateSecureTokens();
     } catch (e) {
       _isInitialized = false;
       rethrow;
     }
   }
 
+  /// Loads the tokens from secure storage into memory, and migrates any token
+  /// left in the legacy plaintext Hive box (from a build before secure storage)
+  /// into the secure store — then removes it from Hive so it never lingers in
+  /// plaintext.
+  static Future<void> _hydrateSecureTokens() async {
+    _accessTokenValue = await SecureStore.read(accessToken);
+    _refreshTokenValue = await SecureStore.read(refreshToken);
+
+    final legacyAccess = _box!.get(accessToken);
+    if ((_accessTokenValue == null || _accessTokenValue!.isEmpty) &&
+        legacyAccess is String &&
+        legacyAccess.isNotEmpty) {
+      _accessTokenValue = legacyAccess;
+      await SecureStore.write(accessToken, legacyAccess);
+    }
+    final legacyRefresh = _box!.get(refreshToken);
+    if ((_refreshTokenValue == null || _refreshTokenValue!.isEmpty) &&
+        legacyRefresh is String &&
+        legacyRefresh.isNotEmpty) {
+      _refreshTokenValue = legacyRefresh;
+      await SecureStore.write(refreshToken, legacyRefresh);
+    }
+    await _box!.delete(accessToken);
+    await _box!.delete(refreshToken);
+  }
+
   static Future<void> setLang(String value) => box.put(languageValue, value);
   static Future<void> setTenant(String value) => box.put(tenantName, value);
 
-  static Future<void> setToken(String? value) =>
-      box.put(accessToken, value ?? '');
+  static Future<void> setToken(String? value) async {
+    _accessTokenValue = value;
+    await SecureStore.write(accessToken, value);
+  }
+
   static Future<void> setDeviceToken(String? value) =>
       box.put(deviceToken, value ?? '');
-  static Future<void> setRefreshToken(String? value) =>
-      box.put(refreshToken, value ?? '');
+
+  static Future<void> setRefreshToken(String? value) async {
+    _refreshTokenValue = value;
+    await SecureStore.write(refreshToken, value);
+  }
   static Future<void> setUserId(String? value) => box.put(userId, value ?? 0);
   static Future<void> setOrganizationId(String? value) =>
       box.put(organizationId, value ?? '');
@@ -116,8 +158,8 @@ class CacheHelper {
   static String get tenant => box.get(tenantName) ?? '';
   static String get theme => box.get('app_theme', defaultValue: 'light');
   static String? get token {
-    if (!box.containsKey(accessToken)) return null;
-    return "${box.get(accessToken)}";
+    final t = _accessTokenValue;
+    return (t == null || t.isEmpty) ? null : t;
   }
 
   static String? get getDeviceToken {
@@ -126,8 +168,8 @@ class CacheHelper {
   }
 
   static String? get refreshtoken {
-    if (!box.containsKey(refreshToken)) return null;
-    return "${box.get(refreshToken)}";
+    final t = _refreshTokenValue;
+    return (t == null || t.isEmpty) ? null : t;
   }
 
   static String? get userID {
@@ -159,13 +201,36 @@ class CacheHelper {
     setUserId(null);
   }
 
+  /// Clears the authentication credentials (secure tokens) and their Hive-side
+  /// session metadata. Non-credential device prefs (lang/theme/tenant) are kept.
   static Future<void> clearToken() async {
+    _accessTokenValue = null;
+    _refreshTokenValue = null;
+    await SecureStore.delete(accessToken);
+    await SecureStore.delete(refreshToken);
+    // Remove any legacy plaintext copies too (pre-migration builds).
     await box.delete(accessToken);
     await box.delete(refreshToken);
     await box.delete(userId);
     await box.delete(organizationId);
     await box.delete(expiresIn);
     await box.delete(date);
+  }
+
+  /// Full sign-out cleanup: credentials + all user-scoped local state and
+  /// caches. Deliberately preserves device-level preferences the next user
+  /// benefits from — language, theme, the last tenant code (to prefill login),
+  /// and the first-run flag.
+  static Future<void> clearSession() async {
+    await clearToken();
+    await box.delete('fcm_topics');
+    await box.delete('stored_accounts_list');
+    await box.delete(userModel);
+    await box.delete(customerInfo);
+    await box.delete(rememberMe);
+    await currentUserBox.clear();
+    await wishlistBox.clear();
+    await cartBox.clear();
   }
 
   static List<String> getTopics() {

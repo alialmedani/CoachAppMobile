@@ -1,16 +1,16 @@
 import 'package:bloc/bloc.dart';
 import 'package:coachappmobile/core/classes/cashe_helper.dart';
+import 'package:coachappmobile/core/utils/functions/token_validator.dart';
 import 'package:meta/meta.dart';
 
 import '../data/model/session_model.dart';
 import '../data/model/token_model.dart';
 import '../data/params/bootstrap_session_params.dart';
 import '../data/params/login_params.dart';
-import '../data/params/refresh_token_params.dart';
 import '../data/repository/auth_repository.dart';
+import '../data/token_revoker.dart';
 import '../data/usecase/bootstrap_session_usecase.dart';
 import '../data/usecase/login_usecase.dart';
-import '../data/usecase/refresh_token_usecase.dart';
 
 part 'session_state.dart';
 
@@ -98,27 +98,26 @@ class SessionCubit extends Cubit<SessionState> {
     }
   }
 
-  /// Sign out: clear all cached credentials and reset the session.
+  /// Sign out: best-effort server-side revocation of the refresh token, then a
+  /// full wipe of local credentials + user-scoped state.
   Future<void> logout() async {
     loginParams = LoginParams(username: '', password: '', tenantCode: '');
+    await TokenRevoker.revokeRefreshTokenBestEffort();
+    await _clearSession();
+  }
+
+  /// Invoked by the HTTP layer (via `SessionGuard`) when an authenticated
+  /// request is rejected with 401 mid-session — treat it as an invalidated
+  /// session and drop back to login. Idempotent: a no-op once signed out.
+  Future<void> forceInvalidate() async {
+    if (state is Unauthenticated) return;
     await _clearSession();
   }
 
   // --------------------------------------------------------------------------
-  Future<bool> _tryRefresh() async {
-    final refresh = CacheHelper.refreshtoken;
-    if (refresh == null || refresh.isEmpty) return false;
-
-    final result = await RefreshTokenUsecase(_repository).call(
-      params: RefreshTokenParams(refreshToken: refresh),
-    );
-
-    if (result.hasDataOnly) {
-      await _persistToken(result.data!);
-      return true;
-    }
-    return false;
-  }
+  // Shared single-flight refresh (also used by RemoteDataSource.checkToken),
+  // so concurrent requests never spend the one-time-use refresh token twice.
+  Future<bool> _tryRefresh() => refreshAccessToken();
 
   Future<bool> _bootstrap() async {
     final result = await BootstrapSessionUsecase(_repository).call(
@@ -146,7 +145,7 @@ class SessionCubit extends Cubit<SessionState> {
   }
 
   Future<void> _clearSession() async {
-    await CacheHelper.clearToken();
+    await CacheHelper.clearSession();
     session = null;
     emit(Unauthenticated());
   }

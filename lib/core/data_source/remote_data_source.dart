@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'package:dartz/dartz.dart';
-import 'package:flutter/foundation.dart';
 import 'package:coachappmobile/core/classes/cashe_helper.dart';
 import 'package:coachappmobile/core/constant/end_points/cashe_helper_constant.dart';
 import 'package:coachappmobile/core/http/api_provider.dart';
@@ -50,7 +49,6 @@ abstract class RemoteDataSource {
     if (withAuthentication) {
       await checkToken();
       final String token = CacheHelper.token ?? "";
-      debugPrint(token);
       if (token != "") {
         headers.putIfAbsent(headerAuth, () => 'Bearer $token');
       }
@@ -95,6 +93,11 @@ abstract class RemoteDataSource {
       "Accept-Language",
       () => CacheHelper.lang == "ar" ? "ar" : "en",
     );
+    // Mirror request<T>: attach the tenant header so no-model calls (delete /
+    // reset-password / change-password) resolve to the same tenant.
+    if (CacheHelper.tenant.isNotEmpty) {
+      headers.putIfAbsent("__tenant", () => CacheHelper.tenant);
+    }
     if (withAuthentication) {
       // Mirror request<T>: refresh a just-expired token and never force-unwrap
       // (checkToken may clear it on failure), so delete / reset-password /

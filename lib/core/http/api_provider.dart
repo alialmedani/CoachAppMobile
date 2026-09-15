@@ -5,11 +5,40 @@ import 'package:dio/dio.dart';
 import 'package:dio/io.dart';
 import 'package:flutter/foundation.dart';
 import 'package:pretty_dio_logger/pretty_dio_logger.dart';
+import 'package:coachappmobile/core/classes/session_guard.dart';
 import 'package:coachappmobile/core/constant/end_points/api_url.dart';
 import 'dio_error_handle.dart';
 import 'http_method.dart';
 
 class ApiProvider {
+  /// Keys whose values must never be written to logs (even in debug).
+  static const _sensitiveKeys = {
+    'password',
+    'currentPassword',
+    'newPassword',
+    'token',
+    'access_token',
+    'refresh_token',
+    'client_secret',
+    'Authorization',
+  };
+
+  /// Returns a copy of [data] with sensitive values masked, for safe logging.
+  static Map<String, dynamic>? _redact(Map<String, dynamic>? data) {
+    if (data == null) return null;
+    return data.map(
+      (k, v) => MapEntry(k, _sensitiveKeys.contains(k) ? '***' : v),
+    );
+  }
+
+  /// Fires the global session-invalidation hook when an authenticated request
+  /// is rejected with 401 during normal use. Excludes the token endpoint, whose
+  /// auth failures surface as 400 (invalid_grant) and are handled inline.
+  static void _handleUnauthorized(DioException e, String url) {
+    if (e.response?.statusCode == 401 && !url.contains('connect/token')) {
+      SessionGuard.notifyUnauthorized();
+    }
+  }
   static var options = BaseOptions(
     baseUrl: baseUrl,
     connectTimeout: const Duration(seconds: 10),
@@ -111,8 +140,10 @@ class ApiProvider {
         }
         dataMap.addAll({fileVideoKey!: multipartFiles});
       }
-      debugPrint('[$method: $url] data : [$data]');
-      debugPrint('queryParameters : [$queryParameters]');
+      if (kDebugMode) {
+        debugPrint('[$method: $url] data : [${_redact(data)}]');
+        debugPrint('queryParameters : [$queryParameters]');
+      }
 
       dio.options.headers = headers;
       if (kDebugMode) {
@@ -204,6 +235,7 @@ class ApiProvider {
         return Left(response.data['message']);
       }
     } on DioException catch (e) {
+      _handleUnauthorized(e, url);
       final errorData = e.response?.data;
 
       if (errorData is Map<String, dynamic>) {
@@ -276,8 +308,10 @@ class ApiProvider {
     CancelToken? cancelToken,
   }) async {
     try {
-      debugPrint('[$method: $url] data : $data');
-      debugPrint('queryParameters : [$queryParameters]');
+      if (kDebugMode) {
+        debugPrint('[$method: $url] data : ${_redact(data)}');
+        debugPrint('queryParameters : [$queryParameters]');
+      }
       dio.options.headers = headers;
 
       Response response;
@@ -332,6 +366,7 @@ class ApiProvider {
         return Left(response.data?.toString() ?? 'Unexpected error');
       }
     } on DioException catch (e) {
+      _handleUnauthorized(e, url);
       final errorData = e.response?.data;
 
       if (errorData is Map<String, dynamic>) {

@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+
 import '../../../results/result.dart';
 import '../models/get_list_request.dart';
 part 'pagination_state.dart';
@@ -58,10 +59,19 @@ class PaginationCubit<ListModel> extends Cubit<PaginationState> {
         // Keep the visible list on a silent refresh — a background blip
         // shouldn't replace what the user is looking at with an error screen.
         if (!silent) {
-          if (response.error != null) {
-            emit(Error(response.error ?? ''));
+          final message = response.error ?? '';
+          if (loadMore) {
+            // Load-more (next page) failure: keep the loaded list on screen and
+            // roll the cursor back so a footer retry re-fetches the same page,
+            // instead of tearing the list down to a full-screen error.
+            skip -= take;
+            emit(LoadMoreError(message, list.toSet().toList()));
+          } else {
+            // Initial-load (first page) failure: nothing to show yet, so the
+            // whole area becomes the error + retry. An empty message falls back
+            // to a localized default in the error widget (no hardcoded string).
+            emit(Error(message));
           }
-          emit(Error('Something went wrong'));
         }
       } else {
         if (!silent) emit(PaginationInitial());

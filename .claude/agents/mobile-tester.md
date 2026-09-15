@@ -28,11 +28,18 @@ params, repositories (with a faked data source), and cubits/screens — never th
 generic boilerplate widgets themselves.
 
 ## Test stack & layout
-- **`flutter_test`** (in `dev_dependencies`). Tests live under `test/`, mirroring `lib/` paths
-  (`test/features/<Module>/<feature>/...`). Read the existing `test/widget_test.dart` and any current
-  tests first to match conventions (it imports `package:coachappmobile/...`).
-- If richer bloc/mocking helpers are needed, propose adding `bloc_test` and `mocktail` to
-  `dev_dependencies` (don't assume they're present — check `pubspec.yaml` first).
+- **`flutter_test`** + **`bloc_test: ^10.0.0`** + **`mocktail: ^1.0.4`** (all in `dev_dependencies`;
+  bloc_test 10 targets bloc 9). Tests live under `test/`, mirroring `lib/` paths
+  (`test/features/<feature>/...`, `test/core/...`). Read the existing tests first to match conventions —
+  the **P20 first tranche** is in place (models, params, `FoodCubit`, `UnsavedChangesGuard`): 66 tests
+  green as of 2026-09-13.
+- ⚠️ **No repository DI seam.** Every feature cubit hard-constructs its repository in a field
+  (`final XRepository _repository = XRepository();`), and repositories call the **static**
+  `RemoteDataSource.request`. So a cubit's **network methods cannot be faked** without changing
+  production code (`mocktail` can't be injected). Do NOT write cubit tests that assert the returned
+  `Result` from a network call — they would hit the real backend. Cover the **no-network** cubit
+  surface instead (see Cubits below). `mocktail` is available for future repository-level tests **if/when**
+  a data-source seam is introduced.
 - The domain is **coaching** — write tests around Trainee/WorkoutPlan/NutritionPlan/ProgressEntry, not
   the legacy delivery examples.
 
@@ -43,15 +50,22 @@ generic boilerplate widgets themselves.
 - **Params** (`data/usecase/`): `toJson()` emits the **ABP names** — `SkipCount`, `MaxResultCount`,
   `SearchTerm`/`Filter` — from a `GetListRequest`, and omits nulls [[mobile-abp-params]]. Write ops
   emit the body fields.
-- **Cubits** (`cubit/`): with a faked/injected repository (or a fake `UseCase`), assert the cubit
-  method returns a `Result` with `hasDataOnly` on success and `hasErrorOnly` on failure, and that
-  params mutate as expected via the `set*`/`onChanged` helpers. Because feature cubits don't `emit()`
-  for API state, assert on the **returned `Result`**, not on emitted states (except `setSearchTerm`
-  which emits `<Feature>SearchChanged`) [[mobile-boilerplate-state]].
-- **Widgets/screens** (`screen/`): pump the screen inside `MaterialApp` + `ScreenUtilInit` +
-  `EasyLocalization` (or the minimal test harness the existing tests use) with a `BlocProvider` of a
-  fake cubit; assert the loading/empty/error/data visuals render. Keep these light — focus on state
-  wiring, not pixel layout.
+- **Cubits** (`cubit/`): because there is no repository seam (above), test only the **no-network
+  orchestration** the cubit owns — the parts that don't call `RemoteDataSource`:
+  - `setSearchTerm(x)` emits `<Feature>SearchChanged` (the one documented `emit`) and stores the term
+    → assert with `blocTest(expect: [isA<...SearchChanged>()], verify: cubit.searchTerm == x)`.
+  - `prepareCreate()` resets the save params to defaults; `prepareEdit(model)` populates them from the
+    model (via `...Params.fromModel`) → plain `test` on `cubit.saveParams` fields. Constructing the
+    cubit is safe (repository construction is trivial; the static data source is only touched at request
+    time). Do **not** call `create*/update*/fetch*` in a test — those hit the network
+    [[mobile-boilerplate-state]].
+- **Widgets** (`screen/` + `core/ui/`): prefer **pure widgets with no cubit/network dependency** (e.g.
+  `UnsavedChangesGuard` — see `test/core/ui/unsaved_changes_guard_test.dart`). Assert **behavior**
+  (dialog appears via `find.byType(AlertDialog)`, navigation pops) rather than translated copy — an
+  uninitialized `'key'.tr()` returns the raw key with a WARNING (it does **not** throw), so no
+  `EasyLocalization` harness is needed for behavior tests. Full **screen** tests need `MaterialApp` +
+  `ShadApp`/`ScreenUtilInit` + `EasyLocalization` + a `BlocProvider`; these are **deferred** — the
+  cubits' internal repositories would hit the network, so a screen test needs a data-source seam first.
 
 Naming: `test('<subject> <expected> when <condition>')` or `group()` per class. Keep tests independent;
 build inputs in-test, don't hit the network. Never weaken an assertion just to make it pass — if a test
@@ -66,9 +80,12 @@ reveals a real bug, report it.
 ## Guardrails
 - Follow the same architecture rules as the rest of the repo; don't introduce a parallel HTTP client
   or manual `emit()` in a feature cubit just to make a test convenient.
-- Expect the transitional scaffold [[mobile-scaffold-state]]: `lib/core` is ported and analyze-clean,
-  but there are no `lib/features/` yet and `main.dart` is still the default counter — test the core
-  primitives and new feature slices you add, not the placeholder app. Firebase/native config is absent,
-  so avoid tests that require it.
+- Repo state [[mobile-scaffold-state]]: `lib/core` is ported and analyze-clean; the full core loop
+  (P1–16: auth + Coach authoring P4–8 + Coach tracking P10–11 + Trainee P12–16) is built under
+  `lib/features/`, plus the P18 `UnsavedChangesGuard`. The **P20 first tranche is done** (models, ABP
+  params, `FoodCubit` orchestration, guard widget — 66 tests). Firebase/native config is absent but
+  doesn't block tests. **Remaining P20 gaps:** more model coverage (workout/nutrition plan models, log
+  models beyond workout, session model), the remaining editors' guards, and repository/screen tests
+  (blocked on the missing data-source seam).
 - If a new testing convention or helper is adopted, tell **mobile-brain** to update the agents/CLAUDE.md
   [[mobile-agent-maintenance]].

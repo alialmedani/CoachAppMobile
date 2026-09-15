@@ -56,14 +56,17 @@ smoke-test is asked for. Run long-lived processes in the background so you can o
 5. Report: pub-get result, analyze result (error/warning counts), build/run result, which screen it
    reached, and any exceptions from the log.
 
-## Expect the transitional scaffold [[mobile-scaffold-state]]
-`lib/core` is ported and **`dart analyze lib` is clean** (only a few info-level lints inherited from
-the reference). Current baseline: `flutter pub get` succeeds; `dart analyze` is clean; but `main.dart`
-is still the default counter (so the app doesn't wire the real core yet), `api_url.dart` points at
-JasimExpress, and **Firebase native config is absent** — so `flutter build`/`flutter run` for a device
-will fail until a CoachApp `flutterfire configure` + `google-services.json`/iOS plist are added. When
-asked to verify a change, separate "was already pending" from "this change broke it", and don't
-declare the app healthy just because `main.dart`'s counter builds.
+## Repo state [[mobile-scaffold-state]]
+`lib/core` is ported and **`dart analyze` is clean** (only 2 inherited info-level `Radio` deprecation
+lints in `modern/app_form_components.dart`). Current baseline: `flutter pub get` succeeds; `dart analyze`
+is clean; `main.dart` is wired (ShadApp root, `setUp()` DI, real routing) and the feature layer is built
+(auth + Coach authoring P4–8 + Trainee P12–15). **The debug APK builds and runs today** — `flutter build
+apk --debug` succeeds and the app boots on an Android emulator against the local backend (`10.0.2.2:44370`).
+Firebase native config is still absent, but that does **not** block the debug build (the `google-services`
+Gradle plugin isn't applied and `Firebase.initializeApp()` is commented out); it only matters once Firebase
+is actually wired. When asked to verify a change, separate "was already pending" from "this change broke
+it", and prefer smoke-testing a real screen (the app renders `AppButton`s that crash without the ShadApp
+root — analyze/build won't catch that).
 
 ## Guardrails
 - If a run needs an interactive step (accept an Android license, start an emulator, device auth),

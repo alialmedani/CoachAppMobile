@@ -3,7 +3,8 @@ import 'package:coachappmobile/core/constant/app_colors/app_colors.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:pull_to_refresh/pull_to_refresh.dart';
 import 'package:coachappmobile/core/ui/widgets/no_data_screen.dart';
-import 'package:coachappmobile/core/ui/widgets/general_error_widget.dart';
+import 'package:coachappmobile/core/ui/widgets/modern/app_error_state.dart';
+
 import '../../../ui/widgets/loading.dart';
 import '../cubits/pagination_cubit.dart';
 import 'footer.dart';
@@ -84,7 +85,9 @@ class PaginationListState<Model> extends State<PaginationList<Model>> {
     return BlocConsumer<PaginationCubit<Model>, PaginationState>(
       bloc: cubit,
       listener: (context, state) {
-        if (state is Error) {
+        if (state is LoadMoreError) {
+          // Keep the list; tell the footer the extra page failed (tap-to-retry).
+          _refreshController.loadFailed();
         } else if (state is GetListSuccessfully) {
           if (widget.onSuccess != null) widget.onSuccess!();
           if (widget.onRefresh != null) widget.onRefresh!();
@@ -102,13 +105,14 @@ class PaginationListState<Model> extends State<PaginationList<Model>> {
           return Center(child: widget.loadingWidget ?? LoadingWidget());
         } else if (state is GetListSuccessfully) {
           return smartRefresher(state.list as List<Model>);
+        } else if (state is LoadMoreError) {
+          // Keep the already-loaded list visible; the footer shows the failure.
+          return smartRefresher(state.list as List<Model>);
         } else if (state is Error) {
           return widget.errorWidget ??
-              GeneralErrorWidget(
+              AppErrorState(
                 message: state.message,
-                onTap: () {
-                  cubit?.getList();
-                },
+                onRetry: () => cubit?.getList(),
               );
         } else {
           return Container();

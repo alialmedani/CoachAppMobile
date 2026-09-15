@@ -1,4 +1,5 @@
 import 'package:easy_localization/easy_localization.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -6,8 +7,10 @@ import 'package:shadcn_ui/shadcn_ui.dart';
 
 import 'core/classes/cashe_helper.dart';
 import 'core/classes/keys.dart';
+import 'core/classes/session_guard.dart';
 import 'core/constant/app_theme/app_theme.dart';
 import 'core/constant/app_theme/shad_theme.dart';
+import 'core/constant/end_points/api_url.dart';
 import 'core/di/injection.dart';
 import 'core/ui/screens/splash_screen.dart';
 import 'features/auth/cubit/session_cubit.dart';
@@ -17,10 +20,28 @@ import 'features/auth/screen/post_login_router.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Fail fast if a RELEASE build wasn't given a real (non-loopback, HTTPS) API
+  // host, so a production build can never silently target the dev server.
+  if (kReleaseMode && isInsecureReleaseBaseUrl(baseUrl)) {
+    throw StateError(
+      'Insecure API_BASE_URL for a release build: "$baseUrl". '
+      'Pass --dart-define=API_BASE_URL=https://<prod-host>/ for release builds.',
+    );
+  }
+  // Disable all debugPrint output in release so no request/token/PII data can
+  // reach logcat/console in production.
+  if (kReleaseMode) {
+    debugPrint = (String? message, {int? wrapWidth}) {};
+  }
+
   // Localization + local storage + DI must be ready before the first frame.
   await EasyLocalization.ensureInitialized();
   await CacheHelper.init();
   await setUp();
+
+  // A mid-session 401 (a token the client still believed valid) invalidates the
+  // session and routes back to login. Idempotent for concurrent 401s.
+  SessionGuard.onUnauthorized = () => getIt<SessionCubit>().forceInvalidate();
 
   // NOTE: Firebase is intentionally NOT initialized yet — firebase_options.dart
   // still holds the JasimExpress project and there is no CoachApp

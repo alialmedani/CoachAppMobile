@@ -2,11 +2,23 @@ import 'package:coachappmobile/features/auth/cubit/session_cubit.dart';
 import 'package:coachappmobile/features/coach/exercises/cubit/exercise_cubit.dart';
 import 'package:coachappmobile/features/coach/foods/cubit/food_cubit.dart';
 import 'package:coachappmobile/features/coach/nutrition_plans/cubit/nutrition_plan_cubit.dart';
+import 'package:coachappmobile/features/coach/tracking/cubit/coach_dashboard_cubit.dart';
+import 'package:coachappmobile/features/coach/tracking/cubit/coach_log_cubit.dart';
+import 'package:coachappmobile/features/coach/tracking/cubit/notes_cubit.dart';
+import 'package:coachappmobile/features/coach/tracking/cubit/progress_cubit.dart';
+import 'package:coachappmobile/features/coach/nutrition_plan_templates/cubit/nutrition_plan_template_cubit.dart';
 import 'package:coachappmobile/features/coach/trainees/cubit/trainee_cubit.dart';
+import 'package:coachappmobile/features/coach/workout_plan_templates/cubit/workout_plan_template_cubit.dart';
 import 'package:coachappmobile/features/coach/workout_plans/cubit/workout_plan_cubit.dart';
+import 'package:coachappmobile/features/trainee/my_dashboard/cubit/my_dashboard_cubit.dart';
+import 'package:coachappmobile/features/trainee/my_notes/cubit/my_notes_cubit.dart';
 import 'package:coachappmobile/features/trainee/my_nutrition_plans/cubit/my_nutrition_plan_cubit.dart';
+import 'package:coachappmobile/features/trainee/my_profile/cubit/my_profile_cubit.dart';
+import 'package:coachappmobile/features/trainee/my_progress/cubit/my_progress_cubit.dart';
 import 'package:coachappmobile/features/trainee/my_workout_plans/cubit/my_workout_plan_cubit.dart';
+import 'package:coachappmobile/features/trainee/nutrition_logs/cubit/nutrition_log_cubit.dart';
 import 'package:coachappmobile/features/trainee/today/cubit/my_today_cubit.dart';
+import 'package:coachappmobile/features/trainee/workout_logs/cubit/workout_log_cubit.dart';
 import 'package:get_it/get_it.dart';
 
 /// Global service locator. Call [setUp] once from `main()` before `runApp`.
@@ -31,10 +43,26 @@ Future<void> setUp() async {
   getIt.registerFactory(() => WorkoutPlanCubit());
   getIt.registerFactory(() => NutritionPlanCubit());
 
+  // Coach — plan templates (Phase 9).
+  getIt.registerFactory(() => WorkoutPlanTemplateCubit());
+  getIt.registerFactory(() => NutritionPlanTemplateCubit());
+
+  // Coach tracking (Phase 11) — dashboard, logs, progress, notes.
+  getIt.registerFactory(() => CoachDashboardCubit());
+  getIt.registerFactory(() => CoachLogCubit());
+  getIt.registerFactory(() => ProgressCubit());
+  getIt.registerFactory(() => NotesCubit());
+
   // Trainee (self-service) feature cubits.
   getIt.registerFactory(() => MyWorkoutPlanCubit());
   getIt.registerFactory(() => MyNutritionPlanCubit());
   getIt.registerFactory(() => MyTodayCubit());
+  getIt.registerFactory(() => WorkoutLogCubit());
+  getIt.registerFactory(() => NutritionLogCubit());
+  getIt.registerFactory(() => MyDashboardCubit());
+  getIt.registerFactory(() => MyProgressCubit());
+  getIt.registerFactory(() => MyNotesCubit());
+  getIt.registerFactory(() => MyProfileCubit());
   // TODO(CoachApp): register the rest of the feature cubits here as features
   // are added under lib/features/.
 }

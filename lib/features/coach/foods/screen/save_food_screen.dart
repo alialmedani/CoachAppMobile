@@ -1,7 +1,10 @@
+import 'dart:convert';
+
 import 'package:coachappmobile/core/boilerplate/create_model/widgets/create_model.dart';
 import 'package:coachappmobile/core/constant/app_design_system.dart';
 import 'package:coachappmobile/core/results/result.dart';
 import 'package:coachappmobile/core/ui/widgets/modern/modern_components.dart';
+import 'package:coachappmobile/core/ui/widgets/unsaved_changes_guard.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -26,6 +29,10 @@ class SaveFoodScreen extends StatefulWidget {
 class _SaveFoodScreenState extends State<SaveFoodScreen> {
   final _formKey = GlobalKey<FormState>();
 
+  /// Snapshot of the draft taken once the params are populated; the guard
+  /// compares against it to know whether the user has unsaved edits.
+  late final String _initialJson;
+
   @override
   void initState() {
     super.initState();
@@ -35,38 +42,46 @@ class _SaveFoodScreenState extends State<SaveFoodScreen> {
     } else {
       cubit.prepareCreate();
     }
+    _initialJson = jsonEncode(cubit.saveParams.toJson());
   }
 
   @override
   Widget build(BuildContext context) {
     final cubit = context.read<FoodCubit>();
-    return Scaffold(
-      backgroundColor: AppDesignSystem.surfaceLight,
-      appBar: AppTopBar(
-        title: widget.isEdit ? 'edit_food'.tr() : 'add_food'.tr(),
-        subtitle:
-            widget.isEdit ? (widget.food!.name ?? '') : 'add_food_subtitle'.tr(),
-      ),
-      body: Column(
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              padding:
-                  EdgeInsets.symmetric(vertical: AppDesignSystem.spacingMD.h),
-              child: Form(
-                key: _formKey,
-                child: FoodForm(params: cubit.saveParams),
+    return UnsavedChangesGuard(
+      isDirty: () => jsonEncode(cubit.saveParams.toJson()) != _initialJson,
+      child: Scaffold(
+        backgroundColor: AppDesignSystem.surfaceLight,
+        appBar: AppTopBar(
+          title: widget.isEdit ? 'edit_food'.tr() : 'add_food'.tr(),
+          subtitle: widget.isEdit
+              ? (widget.food!.name ?? '')
+              : 'add_food_subtitle'.tr(),
+        ),
+        body: Column(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.symmetric(
+                  vertical: AppDesignSystem.spacingMD.h,
+                ),
+                child: Form(
+                  key: _formKey,
+                  child: FoodForm(params: cubit.saveParams),
+                ),
               ),
             ),
-          ),
-          _SaveBar(
-            formKey: _formKey,
-            label: widget.isEdit ? 'save_changes'.tr() : 'create_food'.tr(),
-            onSubmit: () => widget.isEdit ? cubit.updateFood() : cubit.createFood(),
-            successMessage:
-                widget.isEdit ? 'food_updated'.tr() : 'food_created'.tr(),
-          ),
-        ],
+            _SaveBar(
+              formKey: _formKey,
+              label: widget.isEdit ? 'save_changes'.tr() : 'create_food'.tr(),
+              onSubmit: () =>
+                  widget.isEdit ? cubit.updateFood() : cubit.createFood(),
+              successMessage: widget.isEdit
+                  ? 'food_updated'.tr()
+                  : 'food_created'.tr(),
+            ),
+          ],
+        ),
       ),
     );
   }

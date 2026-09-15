@@ -19,11 +19,15 @@ Food, ProgressEntry, WorkoutLog, NutritionLog, Dashboard, TraineeNote**, and the
 > `ar.json`/`en.json`) in place; `firebase_options.dart` copied. Five feature-coupled files were
 > moved to `reference_pending/` (see that folder's README) to keep the core self-contained.
 >
-> **Still pending:** `main.dart` is still the default Flutter counter; `api_url.dart` still points at
-> JasimExpress servers; Firebase/native config (`google-services.json`, iOS plist, a CoachApp
-> `flutterfire configure`) is not set up — `firebase_options.dart` still holds JasimExpress's project;
-> there are no `lib/features/` yet. The **delivery/merchant/driver examples** in the guides are legacy
-> illustrations — the real domain is **coaching**. See [Known cleanup](#known-cleanup-backlog).
+> **Built since:** `main.dart`, `api_url.dart`, and the whole feature layer are done — auth/session,
+> the Coach authoring side (Phases 4–8), and the Trainee experience (Phases 12–15) all live under
+> `lib/features/`, verified on-device. See [Known cleanup](#known-cleanup-backlog) for the exact list.
+>
+> **Still pending:** Firebase/native config (`google-services.json`, iOS plist, a CoachApp
+> `flutterfire configure`) is not set up — `firebase_options.dart` still holds JasimExpress's project.
+> `Firebase.initializeApp()` is intentionally **not** called yet, so debug builds/runs work without it.
+> The **delivery/merchant/driver examples** in the guides are legacy illustrations — the real domain is
+> **coaching**. See [Known cleanup](#known-cleanup-backlog).
 
 ## Stack (from `pubspec.yaml`)
 
@@ -182,19 +186,117 @@ flutter build apk --debug           # Android build sanity check
    builder. The `modern/` components depend on it (`AppButton` → `ShadButton`, `Dialogs` → `ShadToaster`);
    omitting it compiles and builds fine but crashes on the first `AppButton`. → smoke-test a slice on a
    device/emulator the moment it first renders an `AppButton`.
-7. **Phases 1–2 built** — **auth/session/tenant** under `lib/features/auth/` (login → `connect/token` →
-   `application-configuration` bootstrap → `SessionCubit` with `isCoach`/`isTrainee`/`can(policy)`; refresh-or-
-   logout) and **Coach/Trainee shells + permission-gated role routing** under `lib/features/shell/`.
-   Note: the real feature tree is `lib/features/<feature>/…` (no `<Module>` level), so it is **shallower** than
-   the "Import-depth rule" above implies — `screen`/`cubit` → `core` is 3 `../`, `data/usecase` → `core` is 4.
-   Prefer `package:coachappmobile/core/...` absolute imports for core to avoid counting entirely.
+7. **Feature slices built** — all `dart analyze`-clean and verified live on an Android emulator against
+   the real CoachApp backend:
+   - **Auth/session/tenant + role routing** (Phases 1–2) — `lib/features/auth/`, `lib/features/shell/`
+     (login → `connect/token` → `application-configuration` → `SessionCubit` with
+     `isCoach`/`isTrainee`/`can(policy)`; permission-gated Coach/Trainee shells).
+   - **Coach authoring** (Phases 4–8) — `lib/features/coach/`: Trainees CRUD, Exercise & Food
+     libraries, and the Workout & Nutrition plan **nested builders** (`PlanViewer`,
+     `NutritionPlanViewer`, `MacroSummaryCard`, set-active).
+   - **Trainee self-service** (Phases 12–16) — `lib/features/trainee/`: My Plans (read-only, **reuses**
+     the coach models + viewers), **Today** (`GET /my-today?Date=` with the device-**local** date),
+     **workout + nutrition logging** (from-day / from-plan → edit actuals/quantities → PUT → Today
+     refetch; view + delete), and **my dashboard/progress/notes/profile** (Phase 16): the Progress tab
+     nests `GET /my-dashboard/summary` (self-scoped, **no traineeId**) over the reused `DashboardCards` +
+     `ProgressTrendChart` with `my-progress` list/add/delete (**no edit** — backend has no My-progress
+     update); the Profile tab loads `GET /my-profile` (**reuses the coach `TraineeModel` DTO**) and links
+     Coach Notes (`GET /my-note`, **singular**, read-only), **Change Password** (ABP
+     `POST /api/account/my-profile/change-password`), and Logout.
+   - **Coach tracking** (Phases 10–11) — `lib/features/coach/tracking/`: from a trainee's detail a
+     permission-gated **Tracking** section opens **Dashboard** (`/trainee-dashboard/summary`) +
+     **Logs** (`/workout-log`, `/nutrition-log` — read-only; list rows are headers-only, fetch `/{id}`
+     for entries) + **Progress** (`/progress-entry`, CRUD) + **Notes** (`/trainee-note`, CRUD), all
+     scoped to that trainee. Built the shared P10 widgets inline: `DashboardCards`,
+     `WorkoutLogView`/`NutritionLogView` (read-only), `ProgressTrendChart` (dependency-free
+     `CustomPainter` chart — no `fl_chart`). Progress DTO field names: `bodyFatPercent`, `armCm`
+     (singular); note field is `text` (required, max 2000). Tracking list inputs carry
+     `TraineeId`+`FromDate`/`ToDate`+paging (no `Filter`/`SearchTerm`).
+   - **Coach templates** (Phase 9) — `lib/features/coach/workout_plan_templates/` +
+     `lib/features/coach/nutrition_plan_templates/`: workout & nutrition **plan templates** (list /
+     detail / create-edit / delete), **clone template → trainee** (creates a new **inactive** real
+     plan), and **save an existing plan as a template**. Endpoints: `api/app/workout-plan-template`
+     and `api/app/nutrition-plan-template` (both `*TemplateUrl` in `api_url.dart`) with custom actions
+     `POST {url}/{id}/clone-to-trainee` (body `CloneXTemplateDto` = `traineeId`+optional name/desc →
+     returns the plan DTO) and `POST {url}/save-as-template` (body `SaveXPlanAsTemplateDto` =
+     `workoutPlanId`/`nutritionPlanId`+`name`+optional desc). **Template read/write DTOs are the plan
+     DTOs minus `traineeId`/`isActive`**, so templates **reuse the coach plan models + viewers**
+     (`WorkoutPlanModel`/`NutritionPlanModel` + children, `PlanViewer`/`NutritionPlanViewer`/
+     `MacroSummaryCard`, the day/meal editors + exercise/food/trainee picker sheets) — no duplicate
+     models. Template **list** endpoints are **paged** (`PagedResultDto` `items`/`totalCount` →
+     `paginatedCall`) and the list input is a plain `PagedAndSortedResultRequestDto` (`SkipCount`/
+     `MaxResultCount`/`Filter`/`Sorting` — **no** `TraineeId`/`IsActive`). Create/update params must
+     **not emit** `traineeId`/`isActive`. **Permission split to remember:** template CRUD +
+     save-as-template are gated by `*PlanTemplates.Create/Update/Delete`, but **clone-to-trainee is
+     gated by `*Plans.Create`** (it creates a real plan) — the UI mirrors this exactly. Entry point:
+     a **Templates app-bar action** (bookmark icon) on the coach **Plans** tab
+     (`lib/features/coach/plans/plans_screen.dart`) opens a segmented host
+     `lib/features/coach/templates/templates_screen.dart` (Workout | Nutrition, each segment
+     permission-gated, collapses to one list if only one perm); **save-as-template** is a button on the
+     coach plan **detail** screens. Known edge case: a coach with template perms but **no** plan perms
+     gets the placeholder Plans tab and can't reach Templates (the action lives on `PlansScreen`).
+   Trainee-API gotchas learned here: the `My*` **plan list** endpoints are **unpaged top-level arrays**
+   (map via `RemoteDataSource`'s `converter2`, NOT `paginatedCall`/`items` unwrap); the **log list**
+   endpoints are paged with **`FromDate`/`ToDate`** (no `Filter`/`SearchTerm`); a **workout-log update
+   sends actual fields only** — the server preserves the prescribed snapshot keyed by
+   `(exerciseId, order)`, so never emit `prescribed*` and keep each entry's original `exerciseId`+`order`.
+   Also: **detail screens must return their `_changed` refresh flag on system/gesture back** via
+   `PopScope(canPop: false, onPopInvokedWithResult: … Navigator.pop(context, _changed))` — a plain
+   implicit back pops `null` and leaves the list stale. And **create/edit form screens wrap their
+   `Scaffold` in `UnsavedChangesGuard(isDirty: …, child: …)`** (`core/ui/widgets/unsaved_changes_guard.dart`)
+   so backing out of a dirty draft prompts a discard confirm; keep the save/delete path on a direct
+   `Navigator.pop(context, true)` (it bypasses the guard). Dirty signal = a JSON snapshot of the params
+   (`jsonEncode(params.toJson())`) or a controller+date snapshot captured at `initState`.
+   Note: the real feature tree is `lib/features/<feature>/…` (no `<Module>` level), so it is **shallower**
+   than the "Import-depth rule" above implies — `screen`/`cubit` → `core` is 3 `../`, `data/usecase` →
+   `core` is 4. Prefer `package:coachappmobile/core/...` absolute imports for core to avoid counting.
 
 **⏳ Remaining (the agents should surface/execute next)**
 8. **Firebase:** run `flutterfire configure` for the CoachApp project (regenerate `firebase_options.dart`
    — it currently holds JasimExpress's `com.enjaz.noon_express`) and add `google-services.json` /
-   iOS plist before a device build. `dart analyze` passes without these; `flutter build` won't.
-9. **Build coaching features** as vertical slices under `lib/features/` (next: Trainees, then Today
-   dashboard, WorkoutPlan, NutritionPlan, ProgressEntry). → **mobile-feature** + **mobile-api** + **mobile-ui**
+   iOS plist. Note the debug APK **does** build today (the `google-services` Gradle plugin isn't applied
+   and `Firebase.initializeApp()` is commented out); Firebase config only becomes a build/runtime
+   blocker once those are actually wired.
+9. **Remaining features** — the full **core product loop is now built** (coach authoring +
+   coach tracking + trainee self-service, Phases 1–16) **and Coach Templates (Phase 9) is now built**
+   too. What's left is non-core / polish:
+   - **Coach Dashboard** shell tab is still a placeholder (tracking is reached via the trainee-detail hub).
+   - Deferred within logging (14–15): **manual off-plan logging** (needs a plan-item picker —
+     decision D3) and full **history lists**.
+   - **Hardening (Phases 17–21):** ✅ **UnsavedChangesGuard done on ALL editors** —
+     `lib/core/ui/widgets/unsaved_changes_guard.dart` (`UnsavedChangesGuard` wrapping a
+     `PopScope(canPop:false)` that reads a live `isDirty()`; both the `AppTopBar` back button via
+     `Navigator.maybePop` and the system back are guarded; a successful `Navigator.pop(context,true)`
+     save is a direct pop and bypasses it). Applied to save_food/save_exercise/create_trainee (dirty =
+     `jsonEncode(params.toJson())` snapshot) + note/coach-progress/trainee-progress editors AND the
+     workout/nutrition **log editors** (dirty = a snapshot of the controllers taken after the
+     prescribed/from-plan pre-fill); the plan builders already had their own inline guard.
+     ✅ **P19 Security A+B+C done** (secure token storage, single-flight refresh, logout
+     revocation+cleanup, release log/URL guards, R8, 401→login). ✅ **Search debounce done** —
+     `lib/core/utils/functions/debouncer.dart` (`Debouncer`, 400ms) applied to the coach Exercises /
+     Foods / Nutrition-plans lists + the food/exercise/trainee picker sheets (term stored immediately;
+     only the backend re-fetch is debounced; clear + filter chips stay immediate). ✅ **Error states +
+     Retry done** — `lib/core/ui/widgets/modern/app_error_state.dart` (`AppErrorState`: localized,
+     design-system, self-centering, Retry button) is now the default error widget in BOTH boilerplate
+     loaders (`GetModel` + `PaginationList`), replacing the ported `GeneralErrorWidget` (a Scaffold with
+     hardcoded English "Try again" → now dead code). `PaginationCubit` distinguishes initial-load failure
+     (`Error` → full-screen retry) from load-more failure (new `LoadMoreError` → keeps the loaded list,
+     rolls back the page cursor, footer shows `load_more_failed` + retry). ✅ **Keyboard handling done** —
+     added `textInputAction` (Next chain → Done on the last field) to the log editors (workout/nutrition),
+     the plan-builder entry sheets (exercise-entry sets/reps/weight/rest, meal-item quantity), the
+     nutrition-plan target fields (calories/protein/carbs → next, fat → done), and change-password
+     (current/new → next, confirm → done). Numeric fields already had correct number/decimal keyboards
+     and all forms already scroll under the keyboard (`resizeToAvoidBottomInset` default true + scrollable
+     bodies / bottom-sheet `viewInsets` padding), so no keyboard-type or scroll changes were needed.
+     **Still remaining in P17/P18:** network-failure banners + offline read-cache, accessibility audit,
+     form-state-on-rotation; language switcher + `intl` date/number formatting (P17 tail).
+   - **Testing (Phase 20):** ✅ **first tranche done** — `bloc_test`/`mocktail` added; `test/` mirrors
+     `lib/`; **66 tests green** (`dart analyze test` clean) covering model round-trips (incl. int-enum
+     mapping + the WorkoutLog `toWriteJson` actuals-only invariant), ABP param names, `FoodCubit`
+     no-network orchestration, and the `UnsavedChangesGuard`. **Constraint discovered:** feature cubits
+     hard-construct their repository (no DI seam) and repos use the **static** `RemoteDataSource`, so
+     cubit **network** paths + screen tests can't be faked without a production seam — deferred. → **mobile-tester**
+   → **mobile-feature** + **mobile-api** + **mobile-ui**
 10. Re-home the remaining `reference_pending/` files into `lib/` as the matching coaching features are
    built — now just **excel export** and **notification router**. (The splash and home top bar were
    adapted into `lib/core` for CoachApp; the driver deep-link screen was deleted as not needed.)

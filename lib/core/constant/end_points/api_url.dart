@@ -18,6 +18,19 @@ const baseUrl = String.fromEnvironment(
   defaultValue: 'https://10.0.2.2:44370/',
 );
 
+/// True when [url] is unsafe to ship in a **release** build: a loopback/dev host
+/// (the emulator/localhost default) or non-HTTPS. `main()` fails fast in release
+/// if this holds, so a release built without `--dart-define=API_BASE_URL=<prod>`
+/// cannot silently point at a dev server. Debug/profile builds are unaffected.
+bool isInsecureReleaseBaseUrl(String url) {
+  final u = url.toLowerCase();
+  final loopback =
+      u.contains('10.0.2.2') ||
+      u.contains('localhost') ||
+      u.contains('127.0.0.1');
+  return loopback || !u.startsWith('https://');
+}
+
 /// Real-time hub base (SignalR) reuses [baseUrl].
 var baseImageUrl = "${baseUrl}api/app/document/by-master/";
 
@@ -68,6 +81,14 @@ const workoutPlanUrl = '${baseUrl}api/app/workout-plan';
 // POST {nutritionPlanUrl}/{id}/set-active
 const nutritionPlanUrl = '${baseUrl}api/app/nutrition-plan';
 
+// Coach — plan templates (Phase 9). Reusable, trainee-less blueprints sharing
+// the plan day/exercise (meal/item) tree. List is PAGED (SkipCount/
+// MaxResultCount/Filter/Sorting — no TraineeId/IsActive). Two custom actions:
+//   POST {url}/{id}/clone-to-trainee  → a new INACTIVE real plan for a trainee
+//   POST {url}/save-as-template       → snapshot an existing plan into a template
+const workoutPlanTemplateUrl = '${baseUrl}api/app/workout-plan-template';
+const nutritionPlanTemplateUrl = '${baseUrl}api/app/nutrition-plan-template';
+
 /////// trainee — my plans (Phase 12) ////////
 // Trainee-scoped, read-only. GetList returns an UNPAGED top-level array of
 // summaries (days/meals empty); `/{id}` returns the full enriched tree. Same
@@ -81,3 +102,52 @@ const myNutritionPlanUrl = '${baseUrl}api/app/my-nutrition-plan';
 // GET with `?Date=yyyy-MM-dd` (the trainee's LOCAL date, so "today" respects
 // their timezone). Returns MyTodayDto (always non-null).
 const myTodayUrl = '${baseUrl}api/app/my-today';
+
+/////// trainee — logging (Phases 14–15) ////////
+// Workout logs. GET list is paged (SkipCount/MaxResultCount/Sorting +
+// FromDate/ToDate — no Filter/SearchTerm). `/from-day` seeds a log from a plan
+// day (server snapshots prescribed + seeds actuals). PUT sends ACTUAL fields
+// only; the server preserves the prescribed snapshot keyed by (exerciseId,order).
+const myWorkoutLogUrl = '${baseUrl}api/app/my-workout-log';
+const myWorkoutLogFromDayUrl = '${baseUrl}api/app/my-workout-log/from-day';
+
+// Nutrition logs. `/from-plan` flattens the plan's meals→items into entries.
+// Macros are server-computed (read-only); the client sends only foodId/order/
+// quantity/notes.
+const myNutritionLogUrl = '${baseUrl}api/app/my-nutrition-log';
+const myNutritionLogFromPlanUrl = '${baseUrl}api/app/my-nutrition-log/from-plan';
+
+/////// coach — tracking (Phase 11) ////////
+// Coach dashboard analytics for a trainee (read-only). Query: TraineeId + Date
+// (adherence, single day) / FromDate + ToDate (completion, range).
+const traineeDashboardSummaryUrl = '${baseUrl}api/app/trainee-dashboard/summary';
+
+// Coach — read a trainee's logs (read-only: GetList + Get/{id}). GetList query:
+// TraineeId (req), FromDate?, ToDate?, paging. NOTE: list rows are headers only
+// — entries/totals populate only via /{id}. Distinct from the trainee my-* logs.
+const coachWorkoutLogUrl = '${baseUrl}api/app/workout-log';
+const coachNutritionLogUrl = '${baseUrl}api/app/nutrition-log';
+
+// Coach — progress entries (full CRUD; Create/Update/Delete each gated).
+// GetList query: TraineeId (req), FromDate?, ToDate?, paging (default Date desc).
+const progressEntryUrl = '${baseUrl}api/app/progress-entry';
+
+// Coach — trainee notes (full CRUD). GetList query: TraineeId (req) + paging
+// only (no date filter).
+const traineeNoteUrl = '${baseUrl}api/app/trainee-note';
+
+/////// trainee — self-service (Phase 16) ////////
+// Trainee's OWN dashboard (analytics). No TraineeId — derived from the caller.
+// summary: Date+FromDate+ToDate. Returns the same TraineeDashboardDto as coach.
+const myDashboardSummaryUrl = '${baseUrl}api/app/my-dashboard/summary';
+
+// Trainee's own progress: Create / List / Get / Delete — **no Update**. The
+// create body OMITS traineeId. List: paging + FromDate?/ToDate? (default Date desc).
+const myProgressUrl = '${baseUrl}api/app/my-progress';
+
+// Trainee reads coach notes (read-only: List + Get/{id}). NOTE **singular** route
+// `my-note` (the permission is MyNotes). List: paging + Sorting only.
+const myNoteUrl = '${baseUrl}api/app/my-note';
+
+// Trainee's own profile (read-only GET, no input). Returns TraineeDto.
+const myProfileUrl = '${baseUrl}api/app/my-profile';

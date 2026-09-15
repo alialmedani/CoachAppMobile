@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:coachappmobile/core/ui/widgets/general_error_widget.dart';
+import 'package:coachappmobile/core/ui/widgets/modern/app_error_state.dart';
+
 import '../../../ui/widgets/loading.dart';
 import '../cubits/get_model_cubit.dart';
 
@@ -65,16 +66,11 @@ class _GetModelState<Model> extends State<GetModel<Model>> {
           if (state is GetModelSuccessfully) {
             return buildModel(state.model);
           } else if (state is Error) {
-            return Center(
-              child:
-                  widget.errorWidget ??
-                  GeneralErrorWidget(
-                    message: state.message,
-                    onTap: () {
-                      cubit?.getModel();
-                    },
-                  ),
-            );
+            return widget.errorWidget ??
+                AppErrorState(
+                  message: state.message,
+                  onRetry: () => cubit?.getModel(),
+                );
           } else {
             return const Text('');
           }

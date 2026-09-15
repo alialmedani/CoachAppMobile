@@ -98,8 +98,8 @@ class _TraineeDetailScreenState extends State<TraineeDetailScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('delete_trainee'.tr()),
-        content: Text('delete_trainee_confirm'.tr(args: [trainee.fullName])),
+        title: Text('deactivate_trainee'.tr()),
+        content: Text('deactivate_trainee_confirm'.tr(args: [trainee.fullName])),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
@@ -110,7 +110,7 @@ class _TraineeDetailScreenState extends State<TraineeDetailScreen> {
             style: TextButton.styleFrom(
               foregroundColor: AppDesignSystem.errorColor,
             ),
-            child: Text('delete'.tr()),
+            child: Text('deactivate'.tr()),
           ),
         ],
       ),
@@ -123,7 +123,7 @@ class _TraineeDetailScreenState extends State<TraineeDetailScreen> {
       Navigator.pop(context, true);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('trainee_deleted'.tr()),
+          content: Text('trainee_deactivated'.tr()),
           backgroundColor: AppDesignSystem.successColor,
         ),
       );
@@ -242,8 +242,8 @@ class _Body extends StatelessWidget {
           ),
           SizedBox(height: AppDesignSystem.spacingSM.h),
           AppButton(
-            text: 'delete_trainee'.tr(),
-            icon: Icons.delete_outline,
+            text: 'deactivate_trainee'.tr(),
+            icon: Icons.person_off_outlined,
             variant: AppButtonVariant.danger,
             fullWidth: true,
             onPressed: onDelete,

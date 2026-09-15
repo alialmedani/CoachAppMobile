@@ -10,3 +10,10 @@ class ByIdParams extends BaseParams {
 
   ByIdParams({required this.id});
 }
+
+/// Single ISO-date params for trainee "list my X for a day" endpoints.
+class ByDateParams extends BaseParams {
+  final String date;
+
+  ByDateParams({required this.date});
+}

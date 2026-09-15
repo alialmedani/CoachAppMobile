@@ -1,9 +1,13 @@
 import 'package:coachappmobile/core/constant/app_design_system.dart';
 import 'package:coachappmobile/core/ui/widgets/modern/modern_components.dart';
+import 'package:coachappmobile/features/auth/constants/coachapp_permissions.dart';
+import 'package:coachappmobile/features/auth/cubit/session_cubit.dart';
 import 'package:coachappmobile/features/coach/nutrition_plans/screen/nutrition_plans_list_screen.dart';
+import 'package:coachappmobile/features/coach/templates/templates_screen.dart';
 import 'package:coachappmobile/features/coach/workout_plans/screen/workout_plans_list_screen.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 /// Coach "Plans" tab: a segmented host over the Workout and Nutrition plan
@@ -11,6 +15,11 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 /// segment is gated by its permission via [showWorkout] / [showNutrition]; the
 /// feature cubits are provided by the shell above this screen. When only one
 /// segment is available the control collapses to that single list.
+///
+/// When the coach has **no** plan permissions but does have a template
+/// permission, both [showWorkout] and [showNutrition] are false — the screen
+/// renders an "Open Templates" entry instead of a dead placeholder (F6) so the
+/// Templates screen stays reachable (its app-bar action alone is not enough).
 class PlansScreen extends StatefulWidget {
   final bool showWorkout;
   final bool showNutrition;
@@ -28,6 +37,11 @@ class PlansScreen extends StatefulWidget {
 class _PlansScreenState extends State<PlansScreen> {
   int _index = 0;
 
+  void _openTemplates() => Navigator.push(
+    context,
+    MaterialPageRoute(builder: (_) => const TemplatesScreen()),
+  );
+
   @override
   Widget build(BuildContext context) {
     final segments = <_PlanSegment>[
@@ -44,36 +58,67 @@ class _PlansScreenState extends State<PlansScreen> {
           screen: const NutritionPlansListScreen(embedded: true),
         ),
     ];
-    final safeIndex = _index.clamp(0, segments.length - 1);
+    final safeIndex = segments.isEmpty ? 0 : _index.clamp(0, segments.length - 1);
+
+    // Templates entry point: shown only when the coach can access at least one
+    // of the template libraries. Pushes the standalone Templates host (which
+    // provides its own template cubits and gates its own segments).
+    final session = context.read<SessionCubit>();
+    final canTemplates =
+        session.can(CoachPermissions.workoutPlanTemplates) ||
+        session.can(CoachPermissions.nutritionPlanTemplates);
 
     return Scaffold(
       backgroundColor: AppDesignSystem.surfaceLight,
-      appBar: AppTopBar(title: 'plans'.tr()),
-      body: Column(
-        children: [
-          if (segments.length > 1)
-            Container(
-              color: AppDesignSystem.surfaceWhite,
-              padding: EdgeInsets.fromLTRB(
-                AppDesignSystem.spacingMD.w,
-                0,
-                AppDesignSystem.spacingMD.w,
-                AppDesignSystem.spacingSM.h,
-              ),
-              child: _Segmented(
-                segments: segments,
-                index: safeIndex,
-                onChanged: (i) => setState(() => _index = i),
-              ),
-            ),
-          Expanded(
-            child: IndexedStack(
-              index: safeIndex,
-              children: [for (final s in segments) s.screen],
-            ),
-          ),
-        ],
+      appBar: AppTopBar(
+        title: 'plans'.tr(),
+        actions: canTemplates
+            ? [
+                IconButton(
+                  icon: const Icon(Icons.bookmarks_outlined),
+                  tooltip: 'templates'.tr(),
+                  onPressed: _openTemplates,
+                ),
+              ]
+            : null,
       ),
+      body: segments.isEmpty
+          ? AppEmptyState(
+              icon: Icons.bookmarks_outlined,
+              title: 'plan_templates_only_title'.tr(),
+              subtitle: 'plan_templates_only_subtitle'.tr(),
+              iconColor: AppDesignSystem.primaryColor,
+              action: AppButton(
+                text: 'open_templates'.tr(),
+                icon: Icons.bookmarks_outlined,
+                onPressed: _openTemplates,
+              ),
+            )
+          : Column(
+              children: [
+                if (segments.length > 1)
+                  Container(
+                    color: AppDesignSystem.surfaceWhite,
+                    padding: EdgeInsets.fromLTRB(
+                      AppDesignSystem.spacingMD.w,
+                      0,
+                      AppDesignSystem.spacingMD.w,
+                      AppDesignSystem.spacingSM.h,
+                    ),
+                    child: _Segmented(
+                      segments: segments,
+                      index: safeIndex,
+                      onChanged: (i) => setState(() => _index = i),
+                    ),
+                  ),
+                Expanded(
+                  child: IndexedStack(
+                    index: safeIndex,
+                    children: [for (final s in segments) s.screen],
+                  ),
+                ),
+              ],
+            ),
     );
   }
 }

@@ -7,6 +7,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../data/model/meal_item_model.dart';
 import '../../data/model/meal_model.dart';
 import '../../data/model/nutrition_plan_model.dart';
+import 'serving_display.dart';
 
 /// Read-only renderer for a full [NutritionPlanModel] tree: meals as cards and
 /// food items as rows with their enriched name, portion and computed macros.
@@ -104,7 +105,6 @@ class _ItemView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final unit = item.servingUnit;
     return Container(
       margin: EdgeInsets.only(bottom: AppDesignSystem.spacingXS.h),
       padding: EdgeInsets.all(AppDesignSystem.spacingSM.w),
@@ -138,9 +138,7 @@ class _ItemView extends StatelessWidget {
           ),
           SizedBox(height: AppDesignSystem.spacing2XS.h),
           Text(
-            unit != null && unit.isNotEmpty
-                ? 'quantity_x_unit'.tr(args: [_n(item.quantity), unit])
-                : 'quantity_servings_value'.tr(args: [_n(item.quantity)]),
+            ServingDisplay.full(item.quantity, item.servingSize, item.servingUnit),
             style: AppDesignSystem.bodySmall.copyWith(
               color: AppDesignSystem.neutral500,
             ),

@@ -13,10 +13,15 @@ import 'exercise_entry_sheet.dart';
 /// chip (with an "unscheduled" option) and a reorderable list of exercise rows.
 /// All edits are pushed up through [onChanged]; [dragHandle] is supplied by the
 /// parent [ReorderableListView] so the whole day can be dragged.
+///
+/// [takenWeekdays] are the weekdays already scheduled by *other* days in the
+/// plan; they are disabled in this day's picker so a weekday can't be scheduled
+/// twice (F2/PD9). "Unscheduled" (null) is always allowed.
 class DayEditorCard extends StatefulWidget {
   final WorkoutDayModel day;
   final int index;
   final Widget dragHandle;
+  final Set<Weekday> takenWeekdays;
   final ValueChanged<WorkoutDayModel> onChanged;
   final VoidCallback onRemove;
 
@@ -25,6 +30,7 @@ class DayEditorCard extends StatefulWidget {
     required this.day,
     required this.index,
     required this.dragHandle,
+    this.takenWeekdays = const {},
     required this.onChanged,
     required this.onRemove,
   });
@@ -143,6 +149,7 @@ class _DayEditorCardState extends State<DayEditorCard> {
           SizedBox(height: AppDesignSystem.spacingXS.h),
           _WeekdaySelector(
             selected: widget.day.scheduledDay,
+            taken: widget.takenWeekdays,
             onChanged: (day) => _emit(scheduledDay: day),
           ),
           SizedBox(height: AppDesignSystem.spacingMD.h),
@@ -185,9 +192,14 @@ class _DayEditorCardState extends State<DayEditorCard> {
 
 class _WeekdaySelector extends StatelessWidget {
   final Weekday? selected;
+  final Set<Weekday> taken;
   final ValueChanged<Weekday?> onChanged;
 
-  const _WeekdaySelector({required this.selected, required this.onChanged});
+  const _WeekdaySelector({
+    required this.selected,
+    required this.taken,
+    required this.onChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -202,8 +214,12 @@ class _WeekdaySelector extends StatelessWidget {
           ),
           for (final d in Weekday.values)
             _chip(
+              // A weekday already scheduled by another day is disabled so it
+              // can't be scheduled twice (F2/PD9); the current selection is
+              // never in [taken].
               label: d.labelKey.tr(),
               isSelected: selected == d,
+              disabled: taken.contains(d),
               onTap: () => onChanged(d),
             ),
         ],
@@ -214,21 +230,25 @@ class _WeekdaySelector extends StatelessWidget {
   Widget _chip({
     required String label,
     required bool isSelected,
+    bool disabled = false,
     required VoidCallback onTap,
   }) {
+    final Color labelColor = disabled
+        ? AppDesignSystem.neutral400
+        : (isSelected ? Colors.white : AppDesignSystem.neutral600);
     return Padding(
       padding: EdgeInsetsDirectional.only(end: AppDesignSystem.spacingXS.w),
       child: ChoiceChip(
         label: Text(label),
         selected: isSelected,
         showCheckmark: false,
-        labelStyle: AppDesignSystem.labelMedium.copyWith(
-          color: isSelected ? Colors.white : AppDesignSystem.neutral600,
-        ),
+        labelStyle: AppDesignSystem.labelMedium.copyWith(color: labelColor),
         selectedColor: AppDesignSystem.primaryColor,
         backgroundColor: AppDesignSystem.neutral100,
+        disabledColor: AppDesignSystem.neutral100,
         side: BorderSide.none,
-        onSelected: (_) => onTap(),
+        // A null callback disables the chip (weekday taken by another day).
+        onSelected: disabled ? null : (_) => onTap(),
       ),
     );
   }

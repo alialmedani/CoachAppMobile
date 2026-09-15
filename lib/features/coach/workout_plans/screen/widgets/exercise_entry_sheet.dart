@@ -166,6 +166,7 @@ class _ExerciseEntrySheetState extends State<_ExerciseEntrySheet> {
                             label: 'sets'.tr(),
                             controller: _sets,
                             keyboardType: TextInputType.number,
+                            textInputAction: TextInputAction.next,
                             inputFormatters: [
                               FilteringTextInputFormatter.digitsOnly,
                             ],
@@ -178,6 +179,7 @@ class _ExerciseEntrySheetState extends State<_ExerciseEntrySheet> {
                             label: 'reps'.tr(),
                             hint: 'reps_hint'.tr(),
                             controller: _reps,
+                            textInputAction: TextInputAction.next,
                             validator: _validateReps,
                           ),
                         ),
@@ -194,6 +196,7 @@ class _ExerciseEntrySheetState extends State<_ExerciseEntrySheet> {
                             keyboardType: const TextInputType.numberWithOptions(
                               decimal: true,
                             ),
+                            textInputAction: TextInputAction.next,
                             validator: _validateWeight,
                           ),
                         ),
@@ -203,6 +206,7 @@ class _ExerciseEntrySheetState extends State<_ExerciseEntrySheet> {
                             label: 'rest_seconds'.tr(),
                             controller: _rest,
                             keyboardType: TextInputType.number,
+                            textInputAction: TextInputAction.next,
                             inputFormatters: [
                               FilteringTextInputFormatter.digitsOnly,
                             ],

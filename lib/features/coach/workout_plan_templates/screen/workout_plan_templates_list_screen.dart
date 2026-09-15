@@ -1,0 +1,292 @@
+import 'package:coachappmobile/core/boilerplate/pagination/cubits/pagination_cubit.dart';
+import 'package:coachappmobile/core/boilerplate/pagination/widgets/pagination_list.dart';
+import 'package:coachappmobile/core/constant/app_design_system.dart';
+import 'package:coachappmobile/core/ui/widgets/modern/modern_components.dart';
+import 'package:coachappmobile/core/utils/functions/debouncer.dart';
+import 'package:coachappmobile/features/auth/constants/coachapp_permissions.dart';
+import 'package:coachappmobile/features/auth/cubit/session_cubit.dart';
+import 'package:coachappmobile/features/coach/workout_plans/data/model/workout_plan_model.dart';
+import 'package:easy_localization/easy_localization.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+
+import '../cubit/workout_plan_template_cubit.dart';
+import 'widgets/clone_template_sheet.dart';
+import 'widgets/workout_plan_template_card.dart';
+import 'workout_plan_template_builder_screen.dart';
+import 'workout_plan_template_detail_screen.dart';
+
+/// Coach workout-plan-template library: searchable (debounced), paginated. No
+/// active/status filter — templates carry no active state. Create/edit/delete/
+/// clone are gated by the coach's granted permissions.
+class WorkoutPlanTemplatesListScreen extends StatefulWidget {
+  /// Drops the top bar so the screen can sit inside the Templates tab's
+  /// segmented host (which owns the title); standalone use keeps it.
+  final bool embedded;
+
+  const WorkoutPlanTemplatesListScreen({super.key, this.embedded = false});
+
+  @override
+  State<WorkoutPlanTemplatesListScreen> createState() =>
+      _WorkoutPlanTemplatesListScreenState();
+}
+
+class _WorkoutPlanTemplatesListScreenState
+    extends State<WorkoutPlanTemplatesListScreen> {
+  final TextEditingController _searchController = TextEditingController();
+  final Debouncer _searchDebouncer = Debouncer();
+  PaginationCubit? _pagination;
+
+  @override
+  void dispose() {
+    _searchDebouncer.cancel();
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _refresh() => _pagination?.getList();
+
+  /// Store the term immediately (keeps the clear button in sync) but debounce
+  /// the backend re-fetch so it fires once the user pauses, not per keystroke.
+  void _onSearchChanged(WorkoutPlanTemplateCubit cubit, String value) {
+    cubit.setSearchTerm(value);
+    _searchDebouncer.run(() {
+      if (mounted) _refresh();
+    });
+  }
+
+  Future<void> _openCreate(WorkoutPlanTemplateCubit cubit) async {
+    cubit.prepareCreate();
+    final created = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => BlocProvider.value(
+          value: cubit,
+          child: const WorkoutPlanTemplateBuilderScreen(),
+        ),
+      ),
+    );
+    if (created == true) _refresh();
+  }
+
+  Future<void> _openDetail(
+    WorkoutPlanTemplateCubit cubit,
+    WorkoutPlanModel template,
+  ) async {
+    final changed = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => BlocProvider.value(
+          value: cubit,
+          child: WorkoutPlanTemplateDetailScreen(
+            templateId: template.id ?? '',
+          ),
+        ),
+      ),
+    );
+    if (changed == true) _refresh();
+  }
+
+  Future<void> _handleAction(
+    WorkoutPlanTemplateCubit cubit,
+    WorkoutPlanModel template,
+    WorkoutPlanTemplateCardAction action,
+  ) async {
+    switch (action) {
+      case WorkoutPlanTemplateCardAction.useForTrainee:
+        await showCloneTemplateSheet(
+          context,
+          cubit: cubit,
+          templateId: template.id ?? '',
+          templateName: template.name ?? '',
+        );
+        break;
+      case WorkoutPlanTemplateCardAction.edit:
+        await _openEdit(cubit, template);
+        break;
+      case WorkoutPlanTemplateCardAction.delete:
+        await _confirmDelete(cubit, template);
+        break;
+    }
+  }
+
+  /// The list carries only summaries (no days), so a safe edit must first load
+  /// the full template tree before opening the builder — otherwise a PUT would
+  /// replace the template with an empty day list.
+  Future<void> _openEdit(
+    WorkoutPlanTemplateCubit cubit,
+    WorkoutPlanModel template,
+  ) async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CupertinoActivityIndicator()),
+    );
+    final result = await cubit.fetchTemplateById(template.id ?? '');
+    if (!mounted) return;
+    Navigator.pop(context); // dismiss loading
+    if (!result.hasDataOnly) {
+      _snack(
+        result.error ?? 'something_went_wrong'.tr(),
+        AppDesignSystem.errorColor,
+      );
+      return;
+    }
+    final full = result.data as WorkoutPlanModel;
+    if (!mounted) return;
+    final changed = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => BlocProvider.value(
+          value: cubit,
+          child: WorkoutPlanTemplateBuilderScreen(template: full),
+        ),
+      ),
+    );
+    if (changed == true) _refresh();
+  }
+
+  Future<void> _confirmDelete(
+    WorkoutPlanTemplateCubit cubit,
+    WorkoutPlanModel template,
+  ) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('delete_template'.tr()),
+        content: Text(
+          'delete_template_confirm'.tr(args: [template.name ?? '']),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('cancel'.tr()),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(
+              foregroundColor: AppDesignSystem.errorColor,
+            ),
+            child: Text('delete'.tr()),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    final result = await cubit.deleteTemplate(template.id ?? '');
+    if (!mounted) return;
+    if (result.hasDataOnly) {
+      _refresh();
+      _snack('template_deleted'.tr(), AppDesignSystem.successColor);
+    } else {
+      _snack(
+        result.error ?? 'something_went_wrong'.tr(),
+        AppDesignSystem.errorColor,
+      );
+    }
+  }
+
+  void _snack(String message, Color color) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: color),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cubit = context.read<WorkoutPlanTemplateCubit>();
+    final session = context.read<SessionCubit>();
+    final canCreate = session.can(CoachPermissions.workoutPlanTemplatesCreate);
+    final canEdit = session.can(CoachPermissions.workoutPlanTemplatesUpdate);
+    final canDelete = session.can(CoachPermissions.workoutPlanTemplatesDelete);
+    final canClone = session.can(CoachPermissions.workoutPlansCreate);
+
+    return Scaffold(
+      backgroundColor: AppDesignSystem.surfaceLight,
+      appBar: widget.embedded
+          ? null
+          : AppTopBar(title: 'workout_templates'.tr()),
+      floatingActionButton: canCreate
+          ? FloatingActionButton.extended(
+              onPressed: () => _openCreate(cubit),
+              backgroundColor: AppDesignSystem.primaryColor,
+              foregroundColor: Colors.white,
+              icon: const Icon(Icons.add),
+              label: Text('add_template'.tr()),
+            )
+          : null,
+      body: Column(
+        children: [
+          BlocBuilder<WorkoutPlanTemplateCubit, WorkoutPlanTemplateState>(
+            builder: (context, state) => Container(
+              color: AppDesignSystem.surfaceWhite,
+              padding: EdgeInsets.fromLTRB(
+                AppDesignSystem.spacingMD.w,
+                AppDesignSystem.spacingSM.h,
+                AppDesignSystem.spacingMD.w,
+                AppDesignSystem.spacingSM.h,
+              ),
+              child: AppTextField(
+                hint: 'search_workout_templates'.tr(),
+                controller: _searchController,
+                onChanged: (v) => _onSearchChanged(cubit, v),
+                prefixIcon: Icon(
+                  Icons.search,
+                  size: AppDesignSystem.iconSizeSM.sp,
+                  color: AppDesignSystem.neutral400,
+                ),
+                suffixIcon: cubit.searchTerm.isNotEmpty
+                    ? IconButton(
+                        icon: Icon(
+                          Icons.clear,
+                          size: AppDesignSystem.iconSizeSM.sp,
+                        ),
+                        onPressed: () {
+                          _searchController.clear();
+                          cubit.setSearchTerm('');
+                          _searchDebouncer.cancel();
+                          _refresh();
+                        },
+                      )
+                    : null,
+              ),
+            ),
+          ),
+          Expanded(
+            child: PaginationList<WorkoutPlanModel>(
+              withPagination: true,
+              onCubitCreated: (c) => _pagination = c,
+              repositoryCallBack: (data) => cubit.fetchTemplateList(data),
+              noDataWidget: AppEmptyState(
+                icon: Icons.dashboard_customize_outlined,
+                title: 'no_workout_templates'.tr(),
+                subtitle: 'no_workout_templates_subtitle'.tr(),
+                iconColor: AppDesignSystem.primaryColor,
+              ),
+              listBuilder: (list) => ListView.builder(
+                padding: EdgeInsets.fromLTRB(
+                  AppDesignSystem.spacingMD.w,
+                  AppDesignSystem.spacingSM.h,
+                  AppDesignSystem.spacingMD.w,
+                  AppDesignSystem.spacing4XL.h,
+                ),
+                itemCount: list.length,
+                itemBuilder: (context, index) => WorkoutPlanTemplateCard(
+                  template: list[index],
+                  canClone: canClone,
+                  canEdit: canEdit,
+                  canDelete: canDelete,
+                  onTap: () => _openDetail(cubit, list[index]),
+                  onAction: (action) =>
+                      _handleAction(cubit, list[index], action),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

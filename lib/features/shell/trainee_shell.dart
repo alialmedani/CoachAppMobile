@@ -7,13 +7,19 @@ import 'package:coachappmobile/features/trainee/my_nutrition_plans/cubit/my_nutr
 import 'package:coachappmobile/features/trainee/my_nutrition_plans/screen/my_nutrition_plans_screen.dart';
 import 'package:coachappmobile/features/trainee/my_workout_plans/cubit/my_workout_plan_cubit.dart';
 import 'package:coachappmobile/features/trainee/my_workout_plans/screen/my_workout_plans_screen.dart';
+import 'package:coachappmobile/features/trainee/my_dashboard/cubit/my_dashboard_cubit.dart';
+import 'package:coachappmobile/features/trainee/my_profile/cubit/my_profile_cubit.dart';
+import 'package:coachappmobile/features/trainee/my_profile/screen/my_profile_screen.dart';
+import 'package:coachappmobile/features/trainee/my_progress/cubit/my_progress_cubit.dart';
+import 'package:coachappmobile/features/trainee/my_progress/screen/my_progress_screen.dart';
+import 'package:coachappmobile/features/trainee/nutrition_logs/cubit/nutrition_log_cubit.dart';
 import 'package:coachappmobile/features/trainee/today/cubit/my_today_cubit.dart';
 import 'package:coachappmobile/features/trainee/today/screen/today_screen.dart';
+import 'package:coachappmobile/features/trainee/workout_logs/cubit/workout_log_cubit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'widgets/shell_account_screen.dart';
-import 'widgets/shell_placeholder_screen.dart';
 import 'widgets/shell_tab.dart';
 
 /// Trainee (self-service) role home shell.
@@ -83,18 +89,20 @@ class _TraineeShellState extends State<TraineeShell> {
       );
     }
 
-    // Progress — progress entries and/or personal dashboard.
-    // TODO(Phase 16): replace with the real "My Progress" screen.
+    // Progress — the trainee's own dashboard + progress entries (Phase 16).
     if (session.can(TraineePermissions.myProgress) ||
         session.can(TraineePermissions.myDashboard)) {
       tabs.add(
-        const ShellTab(
+        ShellTab(
           labelKey: 'tab_progress',
           activeIcon: Icons.insights,
           inactiveIcon: Icons.insights_outlined,
-          body: ShellPlaceholderScreen(
-            titleKey: 'tab_progress',
-            icon: Icons.insights_outlined,
+          body: MultiBlocProvider(
+            providers: [
+              BlocProvider(create: (_) => getIt<MyProgressCubit>()),
+              BlocProvider(create: (_) => getIt<MyDashboardCubit>()),
+            ],
+            child: const MyProgressScreen(),
           ),
         ),
       );
@@ -105,14 +113,31 @@ class _TraineeShellState extends State<TraineeShell> {
       tabs.add(_todayTab());
     }
 
-    // Profile — always present; holds the profile view + logout.
+    // Profile — always present; the trainee's own profile + notes / change
+    // password / logout (Phase 16). Falls back to the shared account screen if
+    // the trainee somehow lacks the MyProfile permission.
     tabs.add(
-      const ShellTab(
-        labelKey: 'tab_profile',
-        activeIcon: Icons.person,
-        inactiveIcon: Icons.person_outline,
-        body: ShellAccountScreen(titleKey: 'tab_profile'),
-      ),
+      session.can(TraineePermissions.myProfile)
+          ? ShellTab(
+              labelKey: 'tab_profile',
+              activeIcon: Icons.person,
+              inactiveIcon: Icons.person_outline,
+              // Profile also surfaces the derived current weight + a quick
+              // "record today's weight" action, both backed by MyProgressCubit.
+              body: MultiBlocProvider(
+                providers: [
+                  BlocProvider(create: (_) => getIt<MyProfileCubit>()),
+                  BlocProvider(create: (_) => getIt<MyProgressCubit>()),
+                ],
+                child: const MyProfileScreen(),
+              ),
+            )
+          : const ShellTab(
+              labelKey: 'tab_profile',
+              activeIcon: Icons.person,
+              inactiveIcon: Icons.person_outline,
+              body: ShellAccountScreen(titleKey: 'tab_profile'),
+            ),
     );
 
     return tabs;
@@ -122,8 +147,14 @@ class _TraineeShellState extends State<TraineeShell> {
     labelKey: 'tab_today',
     activeIcon: Icons.today,
     inactiveIcon: Icons.today_outlined,
-    body: BlocProvider(
-      create: (_) => getIt<MyTodayCubit>(),
+    // Today also drives the log flows, so it provides the log cubits alongside
+    // MyTodayCubit (Phases 14–15).
+    body: MultiBlocProvider(
+      providers: [
+        BlocProvider(create: (_) => getIt<MyTodayCubit>()),
+        BlocProvider(create: (_) => getIt<WorkoutLogCubit>()),
+        BlocProvider(create: (_) => getIt<NutritionLogCubit>()),
+      ],
       child: const TodayScreen(),
     ),
   );

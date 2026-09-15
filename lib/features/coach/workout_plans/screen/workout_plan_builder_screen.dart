@@ -9,6 +9,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../cubit/workout_plan_cubit.dart';
 import '../data/model/workout_day_model.dart';
+import '../data/model/workout_enums.dart';
 import '../data/model/workout_plan_model.dart';
 import 'widgets/day_editor_card.dart';
 import 'widgets/trainee_picker_sheet.dart';
@@ -105,6 +106,19 @@ class _WorkoutPlanBuilderScreenState extends State<WorkoutPlanBuilderScreen> {
       _markDirty();
       _days = [..._days]..removeAt(index);
     });
+  }
+
+  /// Scheduled weekdays used by every day except [exceptIndex] — the disabled
+  /// set for that day's weekday picker (F2/PD9: a weekday is unique per plan;
+  /// unscheduled days are unconstrained).
+  Set<Weekday> _weekdaysTakenByOthers(int exceptIndex) {
+    final taken = <Weekday>{};
+    for (var i = 0; i < _days.length; i++) {
+      if (i == exceptIndex) continue;
+      final wd = _days[i].scheduledDay;
+      if (wd != null) taken.add(wd);
+    }
+    return taken;
   }
 
   void _reorderDays(int oldIndex, int newIndex) {
@@ -243,6 +257,10 @@ class _WorkoutPlanBuilderScreenState extends State<WorkoutPlanBuilderScreen> {
                       key: ValueKey(day.id ?? 'day-$index'),
                       day: day,
                       index: index,
+                      // Weekdays already scheduled by other days — disabled in
+                      // this day's picker so a weekday can't be used twice
+                      // (F2/PD9). Unscheduled (null) days impose no constraint.
+                      takenWeekdays: _weekdaysTakenByOthers(index),
                       dragHandle: ReorderableDragStartListener(
                         index: index,
                         child: Icon(

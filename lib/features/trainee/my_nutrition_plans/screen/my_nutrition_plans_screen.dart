@@ -1,7 +1,10 @@
 import 'package:coachappmobile/core/boilerplate/get_model/widgets/get_model.dart';
 import 'package:coachappmobile/core/constant/app_design_system.dart';
+import 'package:coachappmobile/core/di/injection.dart';
 import 'package:coachappmobile/core/ui/widgets/modern/modern_components.dart';
 import 'package:coachappmobile/features/coach/nutrition_plans/data/model/nutrition_plan_model.dart';
+import 'package:coachappmobile/features/trainee/nutrition_logs/cubit/nutrition_log_cubit.dart';
+import 'package:coachappmobile/features/trainee/nutrition_logs/screen/nutrition_log_history_screen.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -23,7 +26,26 @@ class MyNutritionPlansScreen extends StatelessWidget {
     final cubit = context.read<MyNutritionPlanCubit>();
     return Scaffold(
       backgroundColor: AppDesignSystem.surfaceLight,
-      appBar: embedded ? null : AppTopBar(title: 'my_nutrition_plans'.tr()),
+      appBar: embedded
+          ? null
+          : AppTopBar(
+              title: 'my_nutrition_plans'.tr(),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.history),
+                  tooltip: 'nutrition_history'.tr(),
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => BlocProvider(
+                        create: (_) => getIt<NutritionLogCubit>(),
+                        child: const NutritionLogHistoryScreen(),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
       body: GetModel<List<NutritionPlanModel>>(
         useCaseCallBack: () => cubit.fetchMyNutritionPlans(),
         modelBuilder: (plans) {

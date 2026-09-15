@@ -207,6 +207,32 @@ class _NutritionPlanBuilderScreenState
     return null;
   }
 
+  /// F11: warn (don't block) before deactivating the trainee's active plan,
+  /// which would leave them with no active nutrition program.
+  Future<bool> _confirmBeforeSave() async {
+    if (widget.isEdit && (widget.plan?.isActive ?? false) && !_isActive) {
+      final proceed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text('deactivate_active_plan_title'.tr()),
+          content: Text('deactivate_active_plan_message'.tr()),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text('cancel'.tr()),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text('continue_anyway'.tr()),
+            ),
+          ],
+        ),
+      );
+      return proceed ?? false;
+    }
+    return true;
+  }
+
   Future<bool> _confirmDiscard() async {
     if (!_dirty) return true;
     final result = await showDialog<bool>(
@@ -327,6 +353,7 @@ class _NutritionPlanBuilderScreenState
                   ? 'nutrition_plan_updated'.tr()
                   : 'nutrition_plan_created'.tr(),
               onValidate: () => _syncAndValidate(cubit),
+              onConfirm: _confirmBeforeSave,
               onSubmit: () => widget.isEdit
                   ? cubit.updateNutritionPlan()
                   : cubit.createNutritionPlan(),
@@ -634,6 +661,10 @@ class _SaveBar extends StatelessWidget {
   final String label;
   final String successMessage;
   final String? Function() onValidate;
+
+  /// Async confirmation after validation passes and before submit (F11 warning).
+  /// Returns false to abort the save.
+  final Future<bool> Function() onConfirm;
   final Future<Result> Function() onSubmit;
   final VoidCallback onSuccess;
 
@@ -641,6 +672,7 @@ class _SaveBar extends StatelessWidget {
     required this.label,
     required this.successMessage,
     required this.onValidate,
+    required this.onConfirm,
     required this.onSubmit,
     required this.onSuccess,
   });
@@ -674,7 +706,7 @@ class _SaveBar extends StatelessWidget {
               );
               return false;
             }
-            return true;
+            return await onConfirm();
           },
           useCaseCallBack: (_) => onSubmit(),
           onSuccess: (_) {

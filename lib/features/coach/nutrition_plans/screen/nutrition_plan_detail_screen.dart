@@ -197,6 +197,41 @@ class _Body extends StatelessWidget {
             targetCarbsG: plan.targetCarbsG,
             targetFatG: plan.targetFatG,
           ),
+          // F16: make the "effective target" explicit. When the coach set no
+          // explicit targets, the plan's own totals are what the trainee's
+          // adherence is scored against — say so, so the coach isn't misled into
+          // thinking there is no target.
+          if (plan.targetCalories == null &&
+              plan.targetProteinG == null &&
+              plan.targetCarbsG == null &&
+              plan.targetFatG == null) ...[
+            SizedBox(height: AppDesignSystem.spacingSM.h),
+            Container(
+              padding: EdgeInsets.all(AppDesignSystem.spacingSM.w),
+              decoration: BoxDecoration(
+                color: AppDesignSystem.neutral100,
+                borderRadius: BorderRadius.circular(AppDesignSystem.radiusMD.r),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.info_outline,
+                    size: AppDesignSystem.iconSizeSM.sp,
+                    color: AppDesignSystem.infoColor,
+                  ),
+                  SizedBox(width: AppDesignSystem.spacingSM.w),
+                  Expanded(
+                    child: Text(
+                      'nutrition_no_targets_note'.tr(),
+                      style: AppDesignSystem.bodySmall.copyWith(
+                        color: AppDesignSystem.neutral700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           SizedBox(height: AppDesignSystem.spacingMD.h),
           Padding(
             padding: EdgeInsetsDirectional.only(

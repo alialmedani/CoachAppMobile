@@ -176,7 +176,11 @@ class _NutritionPlansListScreenState extends State<NutritionPlansListScreen> {
     NutritionPlanCubit cubit,
     NutritionPlanModel plan,
   ) async {
-    final ok = await confirmDeleteNutritionPlan(context, plan.name ?? '');
+    final ok = await confirmDeleteNutritionPlan(
+      context,
+      plan.name ?? '',
+      isActive: plan.isActive,
+    );
     if (!ok) return;
     final result = await cubit.deleteNutritionPlan(plan.id ?? '');
     if (!mounted) return;

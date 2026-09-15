@@ -1,11 +1,15 @@
 import 'package:coachappmobile/core/boilerplate/get_model/cubits/get_model_cubit.dart';
 import 'package:coachappmobile/core/boilerplate/get_model/widgets/get_model.dart';
 import 'package:coachappmobile/core/constant/app_design_system.dart';
+import 'package:coachappmobile/core/ui/dialogs/dialogs.dart';
 import 'package:coachappmobile/core/ui/widgets/modern/modern_components.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:extended_image/extended_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:shimmer/shimmer.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../cubit/exercise_cubit.dart';
 import '../data/model/exercise_model.dart';
@@ -134,6 +138,10 @@ class _Body extends StatelessWidget {
     required this.onDelete,
   });
 
+  bool get _hasMedia =>
+      (exercise.imageUrl ?? '').trim().isNotEmpty ||
+      (exercise.videoUrl ?? '').trim().isNotEmpty;
+
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -202,6 +210,13 @@ class _Body extends StatelessWidget {
               ],
             ),
           ),
+          if (_hasMedia) ...[
+            SizedBox(height: AppDesignSystem.spacingMD.h),
+            _MediaSection(
+              imageUrl: exercise.imageUrl,
+              videoUrl: exercise.videoUrl,
+            ),
+          ],
           if ((exercise.description ?? '').isNotEmpty) ...[
             SizedBox(height: AppDesignSystem.spacingMD.h),
             _TextSection(
@@ -234,6 +249,147 @@ class _Body extends StatelessWidget {
           SizedBox(height: AppDesignSystem.spacingXL.h),
         ],
       ),
+    );
+  }
+}
+
+/// Read-only display of an exercise's image and/or a link to its video.
+///
+/// The URLs are free-form coach input (typically external hosts), so the image
+/// is loaded WITHOUT the app's Bearer header — unlike [CachedImage], which is
+/// for backend-hosted media. Actual in-app video playback is deferred (V1.1);
+/// F21 only surfaces the media, opening the video link externally.
+class _MediaSection extends StatelessWidget {
+  final String? imageUrl;
+  final String? videoUrl;
+
+  const _MediaSection({this.imageUrl, this.videoUrl});
+
+  bool get _hasImage => (imageUrl ?? '').trim().isNotEmpty;
+  bool get _hasVideo => (videoUrl ?? '').trim().isNotEmpty;
+
+  Future<void> _openVideo() async {
+    final uri = Uri.tryParse(videoUrl!.trim());
+    if (uri == null || !uri.hasScheme) {
+      Dialogs.showSnackBar(
+        message: 'could_not_open_video'.tr(),
+        variant: AppToastVariant.error,
+      );
+      return;
+    }
+    try {
+      final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!ok) {
+        Dialogs.showSnackBar(
+          message: 'could_not_open_video'.tr(),
+          variant: AppToastVariant.error,
+        );
+      }
+    } catch (_) {
+      Dialogs.showSnackBar(
+        message: 'could_not_open_video'.tr(),
+        variant: AppToastVariant.error,
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: EdgeInsetsDirectional.only(
+            start: AppDesignSystem.spacingXS.w,
+            bottom: AppDesignSystem.spacingXS.h,
+          ),
+          child: Text(
+            'media'.tr(),
+            style: AppDesignSystem.labelMedium.copyWith(
+              color: AppDesignSystem.neutral500,
+            ),
+          ),
+        ),
+        if (_hasImage)
+          AppCard(
+            padding: EdgeInsets.zero,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(AppDesignSystem.radiusLG.r),
+              child: _ExerciseImage(url: imageUrl!.trim()),
+            ),
+          ),
+        if (_hasImage && _hasVideo)
+          SizedBox(height: AppDesignSystem.spacingSM.h),
+        if (_hasVideo)
+          AppButton(
+            text: 'watch_video'.tr(),
+            icon: Icons.play_circle_outline,
+            variant: AppButtonVariant.outline,
+            fullWidth: true,
+            onPressed: _openVideo,
+          ),
+      ],
+    );
+  }
+}
+
+/// Network image for exercise media — no auth header, with a shimmer while
+/// loading and a graceful placeholder if the URL fails to load.
+class _ExerciseImage extends StatelessWidget {
+  final String url;
+
+  const _ExerciseImage({required this.url});
+
+  @override
+  Widget build(BuildContext context) {
+    final height = 200.h;
+    return ExtendedImage.network(
+      url,
+      fit: BoxFit.cover,
+      width: double.infinity,
+      height: height,
+      printError: false,
+      cacheMaxAge: const Duration(days: 30),
+      loadStateChanged: (state) {
+        switch (state.extendedImageLoadState) {
+          case LoadState.loading:
+            return Shimmer.fromColors(
+              baseColor: AppDesignSystem.neutral200,
+              highlightColor: AppDesignSystem.neutral100,
+              child: Container(
+                width: double.infinity,
+                height: height,
+                color: AppDesignSystem.neutral200,
+              ),
+            );
+          case LoadState.completed:
+            return null;
+          case LoadState.failed:
+            return Container(
+              width: double.infinity,
+              height: height,
+              color: AppDesignSystem.neutral100,
+              alignment: Alignment.center,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.broken_image_outlined,
+                    size: AppDesignSystem.iconSizeLG.sp,
+                    color: AppDesignSystem.neutral400,
+                  ),
+                  SizedBox(height: AppDesignSystem.spacingXS.h),
+                  Text(
+                    'image_unavailable'.tr(),
+                    style: AppDesignSystem.bodySmall.copyWith(
+                      color: AppDesignSystem.neutral500,
+                    ),
+                  ),
+                ],
+              ),
+            );
+        }
+      },
     );
   }
 }

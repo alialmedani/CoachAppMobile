@@ -6,18 +6,23 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 /// Typed-confirmation delete dialog: the coach must retype the plan name before
 /// the destructive action is enabled. Returns `true` when confirmed.
-Future<bool> confirmDeletePlan(BuildContext context, String planName) async {
+Future<bool> confirmDeletePlan(
+  BuildContext context,
+  String planName, {
+  bool isActive = false,
+}) async {
   final result = await showDialog<bool>(
     context: context,
-    builder: (_) => _DeletePlanDialog(planName: planName),
+    builder: (_) => _DeletePlanDialog(planName: planName, isActive: isActive),
   );
   return result ?? false;
 }
 
 class _DeletePlanDialog extends StatefulWidget {
   final String planName;
+  final bool isActive;
 
-  const _DeletePlanDialog({required this.planName});
+  const _DeletePlanDialog({required this.planName, this.isActive = false});
 
   @override
   State<_DeletePlanDialog> createState() => _DeletePlanDialogState();
@@ -41,6 +46,30 @@ class _DeletePlanDialogState extends State<_DeletePlanDialog> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // F11: deleting the trainee's ACTIVE plan strips their current program.
+          if (widget.isActive) ...[
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  Icons.warning_amber_rounded,
+                  size: AppDesignSystem.iconSizeSM.sp,
+                  color: AppDesignSystem.errorColor,
+                ),
+                SizedBox(width: AppDesignSystem.spacingSM.w),
+                Expanded(
+                  child: Text(
+                    'delete_active_plan_warning'.tr(),
+                    style: AppDesignSystem.bodySmall.copyWith(
+                      color: AppDesignSystem.errorColor,
+                      fontWeight: AppDesignSystem.semiBold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: AppDesignSystem.spacingMD.h),
+          ],
           Text(
             'delete_workout_plan_confirm'.tr(args: [widget.planName]),
             style: AppDesignSystem.bodyMedium.copyWith(

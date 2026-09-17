@@ -1,7 +1,9 @@
 import 'package:coachappmobile/core/constant/app_design_system.dart';
+import 'package:coachappmobile/core/constant/app_icons/app_icons.dart';
 import 'package:coachappmobile/core/di/injection.dart';
-import 'package:coachappmobile/core/ui/widgets/animated_notch_navigation_bar.dart';
+import 'package:coachappmobile/core/ui/widgets/apex/control_bar_nav.dart';
 import 'package:coachappmobile/features/auth/constants/coachapp_permissions.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:coachappmobile/features/auth/cubit/session_cubit.dart';
 import 'package:coachappmobile/features/trainee/my_nutrition_plans/cubit/my_nutrition_plan_cubit.dart';
 import 'package:coachappmobile/features/trainee/my_nutrition_plans/screen/my_nutrition_plans_screen.dart';
@@ -42,10 +44,22 @@ class _TraineeShellState extends State<TraineeShell> {
   late final List<ShellTab> _tabs;
   int _index = 0;
 
+  /// Bumped when the user switches to the Profile tab from Progress, so the
+  /// Profile's derived current weight refetches — a progress entry may have just
+  /// been added on the Progress tab (a separate cubit instance). See
+  /// [MyProfileScreen.refreshSignal].
+  final ValueNotifier<int> _profileRefreshTick = ValueNotifier(0);
+
   @override
   void initState() {
     super.initState();
     _tabs = _buildTabs(context.read<SessionCubit>());
+  }
+
+  @override
+  void dispose() {
+    _profileRefreshTick.dispose();
+    super.dispose();
   }
 
   /// Build the visible tab list from granted permissions. A tab the trainee
@@ -66,6 +80,7 @@ class _TraineeShellState extends State<TraineeShell> {
           labelKey: 'tab_workout',
           activeIcon: Icons.fitness_center,
           inactiveIcon: Icons.fitness_center_outlined,
+          navIcon: AppIcons.barbell,
           body: BlocProvider(
             create: (_) => getIt<MyWorkoutPlanCubit>(),
             child: const MyWorkoutPlansScreen(),
@@ -81,6 +96,7 @@ class _TraineeShellState extends State<TraineeShell> {
           labelKey: 'tab_nutrition',
           activeIcon: Icons.restaurant,
           inactiveIcon: Icons.restaurant_outlined,
+          navIcon: AppIcons.nutrition,
           body: BlocProvider(
             create: (_) => getIt<MyNutritionPlanCubit>(),
             child: const MyNutritionPlansScreen(),
@@ -97,6 +113,7 @@ class _TraineeShellState extends State<TraineeShell> {
           labelKey: 'tab_progress',
           activeIcon: Icons.insights,
           inactiveIcon: Icons.insights_outlined,
+          navIcon: AppIcons.progress,
           body: MultiBlocProvider(
             providers: [
               BlocProvider(create: (_) => getIt<MyProgressCubit>()),
@@ -122,6 +139,7 @@ class _TraineeShellState extends State<TraineeShell> {
               labelKey: 'tab_profile',
               activeIcon: Icons.person,
               inactiveIcon: Icons.person_outline,
+              navIcon: AppIcons.profile,
               // Profile also surfaces the derived current weight + a quick
               // "record today's weight" action, both backed by MyProgressCubit.
               body: MultiBlocProvider(
@@ -129,13 +147,14 @@ class _TraineeShellState extends State<TraineeShell> {
                   BlocProvider(create: (_) => getIt<MyProfileCubit>()),
                   BlocProvider(create: (_) => getIt<MyProgressCubit>()),
                 ],
-                child: const MyProfileScreen(),
+                child: MyProfileScreen(refreshSignal: _profileRefreshTick),
               ),
             )
           : const ShellTab(
               labelKey: 'tab_profile',
               activeIcon: Icons.person,
               inactiveIcon: Icons.person_outline,
+              navIcon: AppIcons.profile,
               body: ShellAccountScreen(titleKey: 'tab_profile'),
             ),
     );
@@ -147,6 +166,7 @@ class _TraineeShellState extends State<TraineeShell> {
     labelKey: 'tab_today',
     activeIcon: Icons.today,
     inactiveIcon: Icons.today_outlined,
+    navIcon: AppIcons.today,
     // Today also drives the log flows, so it provides the log cubits alongside
     // MyTodayCubit (Phases 14–15).
     body: MultiBlocProvider(
@@ -162,24 +182,35 @@ class _TraineeShellState extends State<TraineeShell> {
   @override
   Widget build(BuildContext context) {
     final safeIndex = _index.clamp(0, _tabs.length - 1);
+    // Today is the raised center "Log" action (the logging hub); fall back to
+    // the first tab if a permission-less trainee has no Today tab.
+    final todayIndex = _tabs.indexWhere((t) => t.labelKey == 'tab_today');
+    final primaryIndex = todayIndex < 0 ? 0 : todayIndex;
+    final profileIndex = _tabs.indexWhere((t) => t.labelKey == 'tab_profile');
+    final progressIndex = _tabs.indexWhere((t) => t.labelKey == 'tab_progress');
     return Scaffold(
-      backgroundColor: AppDesignSystem.surfaceLight,
+      backgroundColor: AppDesignSystem.surfaceCanvas,
       body: IndexedStack(
         index: safeIndex,
         children: [for (final tab in _tabs) tab.body],
       ),
-      bottomNavigationBar: AnimatedNotchNavigationBar(
+      bottomNavigationBar: ControlBarNav(
         currentIndex: safeIndex,
-        selectedColor: AppDesignSystem.primaryColor,
-        unselectedColor: AppDesignSystem.neutral400,
-        backgroundColor: AppDesignSystem.surfaceWhite,
-        onTap: (i) => setState(() => _index = i),
+        primaryIndex: primaryIndex,
+        centerIcon: AppIcons.bolt,
+        onTap: (i) {
+          // Coming to Profile from Progress → a progress entry may have just
+          // been added; nudge the Profile to refresh its derived current weight.
+          if (i == profileIndex && _index == progressIndex) {
+            _profileRefreshTick.value++;
+          }
+          setState(() => _index = i);
+        },
         items: [
           for (final tab in _tabs)
-            NavigationBarItemConfig(
-              activeIcon: tab.activeIcon,
-              inactiveIcon: tab.inactiveIcon,
-              label: tab.labelKey,
+            ControlBarItem(
+              iconAsset: tab.navIcon ?? AppIcons.today,
+              label: tab.labelKey.tr(),
             ),
         ],
       ),

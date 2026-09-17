@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../apex_colors/apex_colors.dart';
 import '../app_colors/app_colors.dart';
 
 enum AppTheme { dark, light }
@@ -34,32 +35,36 @@ final Map<AppTheme, ThemeData> appThemeData = {
     ),
   ),
 
+  // Apex v3 — the shipping "hero" mode (main.dart forces ThemeMode.dark).
   AppTheme.dark: ThemeData(
     brightness: Brightness.dark,
-    colorScheme: ColorScheme.dark(
+    colorScheme: const ColorScheme.dark(
       brightness: Brightness.dark,
-      primary: AppColors.primary,
-      secondary: AppColors.secoundPrimary,
-      surface: AppColors.darkCard,
-      error: AppColors.darkError,
+      primary: ApexColors.volt,
+      onPrimary: ApexColors.onLime,
+      secondary: ApexColors.blaze,
+      onSecondary: ApexColors.onBlaze,
+      surface: ApexColors.darkRaised,
+      onSurface: ApexColors.darkText,
+      error: ApexColors.critDark,
     ),
-    primaryColor: AppColors.white,
-    scaffoldBackgroundColor: AppColors.danger800,
-    secondaryHeaderColor: AppColors.neutral300,
-    canvasColor: AppColors.neutral700,
-    cardColor: AppColors.neutral800,
-    disabledColor: AppColors.success800,
-    dialogTheme: DialogThemeData(backgroundColor: Color(0xFF1F1F1F)),
+    primaryColor: ApexColors.volt,
+    scaffoldBackgroundColor: ApexColors.darkCanvas,
+    secondaryHeaderColor: ApexColors.darkMuted,
+    canvasColor: ApexColors.darkRaised,
+    cardColor: ApexColors.darkRaised,
+    disabledColor: ApexColors.darkFaint,
+    dialogTheme: const DialogThemeData(backgroundColor: ApexColors.darkOverlay),
     fontFamily: "Cairo",
-    iconTheme: const IconThemeData(color: Colors.white70),
+    iconTheme: const IconThemeData(color: ApexColors.darkText),
     appBarTheme: const AppBarTheme(
-      backgroundColor: Color(0xFF1C1C1E),
-      iconTheme: IconThemeData(color: Colors.white),
-      titleTextStyle: TextStyle(color: Colors.white, fontSize: 18),
+      backgroundColor: ApexColors.darkRaised,
+      iconTheme: IconThemeData(color: ApexColors.darkText),
+      titleTextStyle: TextStyle(color: ApexColors.darkText, fontSize: 18),
     ),
     textTheme: const TextTheme().apply(
-      bodyColor: AppColors.primary25,
-      displayColor: AppColors.primary25,
+      bodyColor: ApexColors.darkText,
+      displayColor: ApexColors.darkText,
     ),
   ),
 };

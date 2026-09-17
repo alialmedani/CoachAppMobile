@@ -1,8 +1,12 @@
 import 'package:coachappmobile/core/boilerplate/pagination/cubits/pagination_cubit.dart';
+import 'package:coachappmobile/core/boilerplate/pagination/models/get_list_request.dart';
 import 'package:coachappmobile/core/boilerplate/pagination/widgets/pagination_list.dart';
 import 'package:coachappmobile/core/constant/app_design_system.dart';
 import 'package:coachappmobile/core/ui/widgets/modern/modern_components.dart';
 import 'package:coachappmobile/core/utils/functions/debouncer.dart';
+import 'package:coachappmobile/features/coach/trainees/data/model/trainee_model.dart';
+import 'package:coachappmobile/features/coach/trainees/data/repository/trainee_repository.dart';
+import 'package:coachappmobile/features/coach/trainees/data/usecase/get_trainee_list_usecase.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -44,10 +48,37 @@ class _NutritionPlansListScreenState extends State<NutritionPlansListScreen> {
   final Debouncer _searchDebouncer = Debouncer();
   PaginationCubit? _pagination;
 
+  /// traineeId → display name, so each plan row can show whose plan it is (the
+  /// plan DTO carries only the id). Fetched once; the plan list is unaffected
+  /// while it loads (cards just omit the name until it resolves).
+  Map<String, String> _traineeNames = const {};
+
   @override
   void initState() {
     super.initState();
     context.read<NutritionPlanCubit>().setScopeTrainee(widget.traineeId);
+    _loadTraineeNames();
+  }
+
+  Future<void> _loadTraineeNames() async {
+    // If scoped to a single trainee its name is already known — skip the fetch.
+    if (widget.traineeId != null) {
+      if (widget.traineeName != null) {
+        _traineeNames = {widget.traineeId!: widget.traineeName!};
+      }
+      return;
+    }
+    final result = await TraineeRepository().getTraineeListRequest(
+      params: GetTraineeListParams(request: GetListRequest(skip: 0, take: 1000)),
+    );
+    if (!mounted || !result.hasDataOnly) return;
+    final list = result.data ?? <TraineeModel>[];
+    setState(() {
+      _traineeNames = {
+        for (final t in list)
+          if (t.id != null) t.id!: t.fullName,
+      };
+    });
   }
 
   @override
@@ -214,7 +245,7 @@ class _NutritionPlansListScreenState extends State<NutritionPlansListScreen> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _openCreate(cubit),
         backgroundColor: AppDesignSystem.primaryColor,
-        foregroundColor: Colors.white,
+        foregroundColor: AppDesignSystem.onPrimary,
         icon: const Icon(Icons.add),
         label: Text('add_nutrition_plan'.tr()),
       ),
@@ -315,6 +346,7 @@ class _NutritionPlansListScreenState extends State<NutritionPlansListScreen> {
                 itemCount: list.length,
                 itemBuilder: (context, index) => NutritionPlanCard(
                   plan: list[index],
+                  traineeName: _traineeNames[list[index].traineeId],
                   onTap: () => _openDetail(cubit, list[index]),
                   onAction: (action) =>
                       _handleAction(cubit, list[index], action),
@@ -348,7 +380,7 @@ class _StatusChip extends StatelessWidget {
         selected: selected,
         showCheckmark: false,
         labelStyle: AppDesignSystem.labelMedium.copyWith(
-          color: selected ? Colors.white : AppDesignSystem.neutral600,
+          color: selected ? AppDesignSystem.onPrimary : AppDesignSystem.neutral600,
         ),
         selectedColor: AppDesignSystem.primaryColor,
         backgroundColor: AppDesignSystem.neutral100,

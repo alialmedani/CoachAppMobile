@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 
+import '../apex_colors/apex_colors.dart';
 import '../app_design_system.dart';
 import '../app_colors/app_colors.dart';
 
@@ -23,9 +24,9 @@ ShadThemeData buildShadLightTheme() {
     cardForeground: AppDesignSystem.neutral900,
     popover: AppDesignSystem.surfaceWhite,
     popoverForeground: AppDesignSystem.neutral900,
-    // Brand primary (teal)
+    // Brand primary (Volt lime) — text on it is ink, never white.
     primary: AppDesignSystem.primaryColor,
-    primaryForeground: AppDesignSystem.surfaceWhite,
+    primaryForeground: AppDesignSystem.onPrimary,
     // Muted / neutrals
     muted: AppDesignSystem.neutral100,
     mutedForeground: AppDesignSystem.neutral500,
@@ -60,9 +61,9 @@ ShadThemeData buildShadDarkTheme() {
     cardForeground: AppColors.darkTextPrimary,
     popover: AppColors.darkCard,
     popoverForeground: AppColors.darkTextPrimary,
-    // Brand primary (red for dark mode)
+    // Brand primary (Volt lime) — text on it is ink, never white.
     primary: AppColors.primary,
-    primaryForeground: Colors.white,
+    primaryForeground: ApexColors.onLime,
     // Muted / neutrals
     muted: AppColors.darkSurfaceMuted,
     mutedForeground: AppColors.darkTextSecondary,

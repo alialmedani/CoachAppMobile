@@ -261,7 +261,7 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
             children: [
               TileLayer(
                 urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                userAgentPackageName: 'com.enjaz.noon_express',
+                userAgentPackageName: 'com.example.coachappmobile',
               ),
               if (_selectedLocation != null)
                 MarkerLayer(

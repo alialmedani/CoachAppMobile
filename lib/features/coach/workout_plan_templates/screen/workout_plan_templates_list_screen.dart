@@ -212,7 +212,7 @@ class _WorkoutPlanTemplatesListScreenState
           ? FloatingActionButton.extended(
               onPressed: () => _openCreate(cubit),
               backgroundColor: AppDesignSystem.primaryColor,
-              foregroundColor: Colors.white,
+              foregroundColor: AppDesignSystem.onPrimary,
               icon: const Icon(Icons.add),
               label: Text('add_template'.tr()),
             )

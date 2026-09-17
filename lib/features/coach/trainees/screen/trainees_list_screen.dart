@@ -1,6 +1,10 @@
 import 'package:coachappmobile/core/boilerplate/pagination/cubits/pagination_cubit.dart';
 import 'package:coachappmobile/core/boilerplate/pagination/widgets/pagination_list.dart';
 import 'package:coachappmobile/core/constant/app_design_system.dart';
+import 'package:coachappmobile/core/constant/app_icons/app_icons.dart';
+import 'package:coachappmobile/core/ui/shapes/chamfer.dart';
+import 'package:coachappmobile/core/ui/widgets/app_icon.dart';
+import 'package:coachappmobile/core/ui/widgets/apex/apex_segmented.dart';
 import 'package:coachappmobile/core/ui/widgets/modern/modern_components.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
@@ -69,13 +73,19 @@ class _TraineesListScreenState extends State<TraineesListScreen> {
   Widget build(BuildContext context) {
     final cubit = context.read<TraineeCubit>();
     return Scaffold(
-      backgroundColor: AppDesignSystem.surfaceLight,
+      backgroundColor: AppDesignSystem.surfaceCanvas,
       appBar: AppTopBar(title: 'trainees'.tr()),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'fab_trainees',
         onPressed: () => _openCreate(cubit),
         backgroundColor: AppDesignSystem.primaryColor,
-        foregroundColor: Colors.white,
-        icon: const Icon(Icons.person_add_alt_1),
+        foregroundColor: AppDesignSystem.onPrimary,
+        shape: const ChamferBorder(cut: 16),
+        icon: AppIcon(
+          AppIcons.plus,
+          size: AppDesignSystem.iconSizeSM,
+          color: AppDesignSystem.onPrimary,
+        ),
         label: Text('add_trainee'.tr()),
       ),
       body: Column(
@@ -183,37 +193,26 @@ class _SearchAndFilters extends StatelessWidget {
                 : null,
           ),
           SizedBox(height: AppDesignSystem.spacingSM.h),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                _StatusChip(
-                  label: 'all'.tr(),
-                  selected: filterActive == null,
-                  onTap: () => onStatusChanged(null),
+          Row(
+            children: [
+              Expanded(
+                child: ApexSegmented(
+                  labels: ['active'.tr(), 'inactive'.tr(), 'all'.tr()],
+                  index: filterActive == true
+                      ? 0
+                      : filterActive == false
+                      ? 1
+                      : 2,
+                  onChanged: (i) =>
+                      onStatusChanged(const [true, false, null][i]),
                 ),
-                _StatusChip(
-                  label: 'active'.tr(),
-                  selected: filterActive == true,
-                  onTap: () => onStatusChanged(true),
-                ),
-                _StatusChip(
-                  label: 'inactive'.tr(),
-                  selected: filterActive == false,
-                  onTap: () => onStatusChanged(false),
-                ),
-                Container(
-                  width: 1,
-                  height: 24.h,
-                  margin: EdgeInsets.symmetric(horizontal: AppDesignSystem.spacingXS.w),
-                  color: AppDesignSystem.neutral200,
-                ),
-                _GoalFilterChip(
-                  selectedGoal: filterGoal,
-                  onChanged: onGoalChanged,
-                ),
-              ],
-            ),
+              ),
+              SizedBox(width: AppDesignSystem.spacingSM.w),
+              _GoalFilterChip(
+                selectedGoal: filterGoal,
+                onChanged: onGoalChanged,
+              ),
+            ],
           ),
         ],
       ),
@@ -221,37 +220,8 @@ class _SearchAndFilters extends StatelessWidget {
   }
 }
 
-class _StatusChip extends StatelessWidget {
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _StatusChip({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsetsDirectional.only(end: AppDesignSystem.spacingXS.w),
-      child: ChoiceChip(
-        label: Text(label),
-        selected: selected,
-        showCheckmark: false,
-        labelStyle: AppDesignSystem.labelMedium.copyWith(
-          color: selected ? Colors.white : AppDesignSystem.neutral600,
-        ),
-        selectedColor: AppDesignSystem.primaryColor,
-        backgroundColor: AppDesignSystem.neutral100,
-        side: BorderSide.none,
-        onSelected: (_) => onTap(),
-      ),
-    );
-  }
-}
-
+/// Goal filter — an Apex pill that opens a popup of training goals. Reads as
+/// selected (Volt) when a goal is set, neutral otherwise.
 class _GoalFilterChip extends StatelessWidget {
   final int? selectedGoal;
   final ValueChanged<int?> onChanged;
@@ -264,29 +234,48 @@ class _GoalFilterChip extends StatelessWidget {
     final label = selected
         ? TrainingGoal.fromValue(selectedGoal).labelKey.tr()
         : 'goal'.tr();
+    final color = selected
+        ? AppDesignSystem.primaryStrong
+        : AppDesignSystem.textMuted;
     return PopupMenuButton<int?>(
       onSelected: onChanged,
+      color: AppDesignSystem.surfaceOverlay,
       itemBuilder: (context) => [
         PopupMenuItem<int?>(value: null, child: Text('all_goals'.tr())),
         for (final g in TrainingGoal.values)
           PopupMenuItem<int?>(value: g.value, child: Text(g.labelKey.tr())),
       ],
-      child: Chip(
-        avatar: Icon(
-          Icons.flag_outlined,
-          size: AppDesignSystem.iconSizeXS.sp,
-          color: selected ? AppDesignSystem.primaryDark : AppDesignSystem.neutral600,
+      child: Container(
+        padding: EdgeInsets.symmetric(
+          horizontal: AppDesignSystem.spacingSM.w,
+          vertical: AppDesignSystem.spacingSM.h,
         ),
-        label: Text(label),
-        labelStyle: AppDesignSystem.labelMedium.copyWith(
-          color: selected ? AppDesignSystem.primaryDark : AppDesignSystem.neutral600,
+        decoration: BoxDecoration(
+          color: selected
+              ? AppDesignSystem.primaryColor.withValues(alpha: 0.10)
+              : AppDesignSystem.surfaceSunken,
+          borderRadius: BorderRadius.circular(AppDesignSystem.radiusMD.r),
+          border: Border.all(
+            color: selected
+                ? AppDesignSystem.primaryColor.withValues(alpha: 0.35)
+                : AppDesignSystem.borderColor,
+          ),
         ),
-        backgroundColor: selected
-            ? AppDesignSystem.primarySurface
-            : AppDesignSystem.neutral100,
-        side: BorderSide.none,
-        deleteIcon: Icon(Icons.arrow_drop_down, size: AppDesignSystem.iconSizeSM.sp),
-        onDeleted: null,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.flag_outlined, size: AppDesignSystem.iconSizeXS.sp, color: color),
+            SizedBox(width: AppDesignSystem.spacing2XS.w),
+            Text(
+              label,
+              style: AppDesignSystem.labelMedium.copyWith(
+                color: color,
+                fontWeight: AppDesignSystem.bold,
+              ),
+            ),
+            Icon(Icons.arrow_drop_down, size: AppDesignSystem.iconSizeSM.sp, color: color),
+          ],
+        ),
       ),
     );
   }

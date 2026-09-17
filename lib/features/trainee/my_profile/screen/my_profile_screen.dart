@@ -1,7 +1,11 @@
 import 'package:coachappmobile/core/boilerplate/get_model/cubits/get_model_cubit.dart';
 import 'package:coachappmobile/core/boilerplate/get_model/widgets/get_model.dart';
 import 'package:coachappmobile/core/constant/app_design_system.dart';
+import 'package:coachappmobile/core/constant/app_icons/app_icons.dart';
 import 'package:coachappmobile/core/di/injection.dart';
+import 'package:coachappmobile/core/ui/shapes/chamfer.dart';
+import 'package:coachappmobile/core/ui/widgets/apex/athlete_credential.dart';
+import 'package:coachappmobile/core/ui/widgets/app_icon.dart';
 import 'package:coachappmobile/core/ui/widgets/modern/modern_components.dart';
 import 'package:coachappmobile/features/auth/cubit/session_cubit.dart';
 import 'package:coachappmobile/features/auth/screen/change_password_screen.dart';
@@ -20,30 +24,90 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../cubit/my_profile_cubit.dart';
 import 'my_profile_edit_screen.dart';
 
-/// The trainee's "Profile" tab: their own profile with a restricted self-edit
-/// (phone/email/birth date), plus entries into coach notes, change-password,
-/// and logout.
+String _n(double v) =>
+    v == v.roundToDouble() ? v.toInt().toString() : v.toStringAsFixed(1);
+
+String _num(double? v, String unit) => v == null ? '—' : '${_n(v)} $unit';
+
+String _fmtDate(DateTime? d) {
+  if (d == null) return '—';
+  final m = d.month.toString().padLeft(2, '0');
+  final day = d.day.toString().padLeft(2, '0');
+  return '${d.year}-$m-$day';
+}
+
+int? _age(DateTime? birth) {
+  if (birth == null) return null;
+  final now = DateTime.now();
+  var a = now.year - birth.year;
+  if (now.month < birth.month ||
+      (now.month == birth.month && now.day < birth.day)) {
+    a--;
+  }
+  return a < 0 || a > 130 ? null : a;
+}
+
+/// The trainee's "Profile" tab, rebuilt as the Apex flagship: a premium athlete
+/// **credential** card, a signature **body-composition journey** rail (start →
+/// now → goal weight), a spec-sheet detail grid, and a chamfered control deck —
+/// all entering on a choreographed staggered reveal. Keeps the restricted
+/// self-edit + coach-notes / change-password / logout entries and the quick
+/// "record today's weight" flow.
 class MyProfileScreen extends StatefulWidget {
-  const MyProfileScreen({super.key});
+  /// Optional signal, fired by the shell when the user switches to the Profile
+  /// tab from Progress. The body listens and refetches the derived current
+  /// weight, so a progress entry just added on the Progress tab (a separate
+  /// cubit instance) is reflected here without a manual pull-to-refresh.
+  final Listenable? refreshSignal;
+
+  const MyProfileScreen({super.key, this.refreshSignal});
 
   @override
   State<MyProfileScreen> createState() => _MyProfileScreenState();
 }
 
-class _MyProfileScreenState extends State<MyProfileScreen> {
+class _MyProfileScreenState extends State<MyProfileScreen>
+    with SingleTickerProviderStateMixin {
   GetModelCubit? _getModel;
 
-  static String _fmtDate(DateTime? d) {
-    if (d == null) return '—';
-    final m = d.month.toString().padLeft(2, '0');
-    final day = d.day.toString().padLeft(2, '0');
-    return '${d.year}-$m-$day';
+  late final AnimationController _reveal = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 900),
+  );
+  bool _revealStarted = false;
+
+  @override
+  void dispose() {
+    _reveal.dispose();
+    super.dispose();
   }
 
-  static String _num(double? v, String unit) {
-    if (v == null) return '—';
-    final n = v == v.roundToDouble() ? v.toInt().toString() : v.toString();
-    return '$n $unit';
+  void _startReveal() {
+    if (_revealStarted) return;
+    _revealStarted = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _reveal.forward();
+    });
+  }
+
+  /// Staggered entrance: each section fades + rises, offset by its index.
+  Widget _staggered(int i, Widget child) {
+    const span = 0.6;
+    final start = (i * 0.09).clamp(0.0, 0.4);
+    return AnimatedBuilder(
+      animation: _reveal,
+      builder: (_, _) {
+        final raw = ((_reveal.value - start) / span).clamp(0.0, 1.0);
+        final t = Curves.easeOutCubic.transform(raw);
+        return Opacity(
+          opacity: t,
+          child: Transform.translate(
+            offset: Offset(0, 20 * (1 - t)),
+            child: child,
+          ),
+        );
+      },
+    );
   }
 
   Future<void> _edit(MyProfileCubit cubit, TraineeModel p) async {
@@ -59,248 +123,149 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
     if (changed == true) _getModel?.getModel();
   }
 
+  void _openNotes() => Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (_) => BlocProvider(
+        create: (_) => getIt<MyNotesCubit>(),
+        child: const MyNotesScreen(),
+      ),
+    ),
+  );
+
+  void _openChangePassword() => Navigator.push(
+    context,
+    MaterialPageRoute(builder: (_) => const ChangePasswordScreen()),
+  );
+
   @override
   Widget build(BuildContext context) {
     final cubit = context.read<MyProfileCubit>();
     return Scaffold(
-      backgroundColor: AppDesignSystem.surfaceLight,
-      appBar: AppTopBar(title: 'tab_profile'.tr()),
+      backgroundColor: AppDesignSystem.surfaceCanvas,
       body: GetModel<TraineeModel>(
         onCubitCreated: (c) => _getModel = c,
         useCaseCallBack: () => cubit.fetchProfile(),
-        modelBuilder: (p) => SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: EdgeInsets.all(AppDesignSystem.spacingMD.w),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              AppCard(
-                child: Row(
-                  children: [
-                    Container(
-                      width: 56.w,
-                      height: 56.w,
-                      alignment: Alignment.center,
-                      decoration: const BoxDecoration(
-                        color: AppDesignSystem.primarySurface,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Text(
-                        p.initial,
-                        style: AppDesignSystem.h4.copyWith(
-                          color: AppDesignSystem.primaryDark,
-                        ),
-                      ),
-                    ),
-                    SizedBox(width: AppDesignSystem.spacingMD.w),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            p.fullName,
-                            style: AppDesignSystem.h5.copyWith(
-                              color: AppDesignSystem.neutral900,
-                            ),
-                          ),
-                          if ((p.email ?? '').isNotEmpty) ...[
-                            SizedBox(height: AppDesignSystem.spacing2XS.h),
-                            Text(
-                              p.email!,
-                              style: AppDesignSystem.bodySmall.copyWith(
-                                color: AppDesignSystem.neutral500,
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+        modelBuilder: (p) {
+          _startReveal();
+          final age = _age(p.birthDate);
+          return SafeArea(
+            bottom: false,
+            child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: EdgeInsets.fromLTRB(
+                AppDesignSystem.spacingMD.w,
+                AppDesignSystem.spacingSM.h,
+                AppDesignSystem.spacingMD.w,
+                AppDesignSystem.spacing4XL.h,
               ),
-              SizedBox(height: AppDesignSystem.spacingMD.h),
-              _Section(
-                rows: [
-                  _row(
-                    Icons.flag_outlined,
-                    'training_goal'.tr(),
-                    p.goal.labelKey.tr(),
-                  ),
-                  _row(
-                    Icons.wc_outlined,
-                    'gender'.tr(),
-                    p.gender.labelKey.tr(),
-                  ),
-                  _row(
-                    Icons.cake_outlined,
-                    'birth_date'.tr(),
-                    _fmtDate(p.birthDate),
-                  ),
-                  _row(
-                    Icons.height_outlined,
-                    'height_cm'.tr(),
-                    _num(p.heightCm, 'unit_cm'.tr()),
-                  ),
-                  _row(
-                    Icons.monitor_weight_outlined,
-                    'start_weight_kg'.tr(),
-                    _num(p.startWeightKg, 'unit_kg'.tr()),
-                  ),
-                  _row(
-                    Icons.flag_circle_outlined,
-                    'target_weight_kg'.tr(),
-                    _num(p.targetWeightKg, 'unit_kg'.tr()),
-                  ),
-                  _row(
-                    Icons.phone_outlined,
-                    'phone'.tr(),
-                    p.phoneNumber ?? '—',
-                  ),
-                ],
-              ),
-              SizedBox(height: AppDesignSystem.spacingMD.h),
-              // Derived current weight (latest progress entry) + quick record.
-              const _CurrentWeightSection(),
-              SizedBox(height: AppDesignSystem.spacingLG.h),
-              AppButton(
-                text: 'edit_profile'.tr(),
-                icon: Icons.edit_outlined,
-                fullWidth: true,
-                onPressed: () => _edit(cubit, p),
-              ),
-              SizedBox(height: AppDesignSystem.spacingSM.h),
-              AppButton(
-                text: 'coach_notes'.tr(),
-                icon: Icons.sticky_note_2_outlined,
-                variant: AppButtonVariant.outline,
-                fullWidth: true,
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => BlocProvider(
-                      create: (_) => getIt<MyNotesCubit>(),
-                      child: const MyNotesScreen(),
-                    ),
+              children: [
+                _staggered(
+                  0,
+                  AthleteCredential(
+                    overline: 'athlete_credential'.tr(),
+                    name: p.fullName,
+                    initial: p.initial,
+                    athleteId:
+                        'APX · ${(p.userName ?? p.initial).toUpperCase()}',
+                    memberSince: p.creationTime != null
+                        ? '${'member_since'.tr()} ${p.creationTime!.year}'
+                        : 'member_since'.tr(),
+                    ageLabel: age != null
+                        ? 'years_old'.tr(args: ['$age'])
+                        : null,
+                    goalLabel: p.goal.labelKey.tr(),
+                    active: p.isActive,
+                    statusLabel: (p.isActive ? 'active' : 'inactive').tr(),
                   ),
                 ),
-              ),
-              SizedBox(height: AppDesignSystem.spacingSM.h),
-              AppButton(
-                text: 'change_password'.tr(),
-                icon: Icons.lock_reset_outlined,
-                variant: AppButtonVariant.outline,
-                fullWidth: true,
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const ChangePasswordScreen(),
+                SizedBox(height: AppDesignSystem.spacingLG.h),
+                _staggered(
+                  1,
+                  _JourneySection(
+                    startWeight: p.startWeightKg,
+                    targetWeight: p.targetWeightKg,
+                    refreshSignal: widget.refreshSignal,
                   ),
                 ),
-              ),
-              SizedBox(height: AppDesignSystem.spacingSM.h),
-              AppButton(
-                text: 'logout'.tr(),
-                icon: Icons.logout,
-                variant: AppButtonVariant.danger,
-                fullWidth: true,
-                onPressed: () => context.read<SessionCubit>().logout(),
-              ),
-              SizedBox(height: AppDesignSystem.spacingXL.h),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _row(IconData icon, String label, String value) =>
-      _InfoRow(icon: icon, label: label, value: value);
-}
-
-class _Section extends StatelessWidget {
-  final List<Widget> rows;
-
-  const _Section({required this.rows});
-
-  @override
-  Widget build(BuildContext context) {
-    return AppCard(
-      child: Column(
-        children: [
-          for (var i = 0; i < rows.length; i++) ...[
-            rows[i],
-            if (i < rows.length - 1)
-              Divider(
-                height: AppDesignSystem.spacingLG.h,
-                color: AppDesignSystem.neutral100,
-              ),
-          ],
-        ],
+                SizedBox(height: AppDesignSystem.spacingLG.h),
+                _staggered(2, _SectionLabel(
+                  icon: AppIcons.profile,
+                  title: 'details'.tr(),
+                )),
+                SizedBox(height: AppDesignSystem.spacingSM.h),
+                _staggered(3, _SpecGrid(profile: p, age: age)),
+                SizedBox(height: AppDesignSystem.spacingLG.h),
+                _staggered(4, _SectionLabel(
+                  icon: AppIcons.bolt,
+                  title: 'account'.tr(),
+                )),
+                SizedBox(height: AppDesignSystem.spacingSM.h),
+                _staggered(
+                  5,
+                  _ControlDeck(
+                    onEdit: () => _edit(cubit, p),
+                    onNotes: _openNotes,
+                    onChangePassword: _openChangePassword,
+                    onLogout: () => context.read<SessionCubit>().logout(),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
 }
 
-class _InfoRow extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String value;
+// ============================================================================
+// Body-composition journey — start → now → goal
+// ============================================================================
 
-  const _InfoRow({
-    required this.icon,
-    required this.label,
-    required this.value,
+class _JourneySection extends StatefulWidget {
+  final double? startWeight;
+  final double? targetWeight;
+  final Listenable? refreshSignal;
+
+  const _JourneySection({
+    this.startWeight,
+    this.targetWeight,
+    this.refreshSignal,
   });
 
   @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Icon(
-          icon,
-          size: AppDesignSystem.iconSizeSM.sp,
-          color: AppDesignSystem.neutral400,
-        ),
-        SizedBox(width: AppDesignSystem.spacingMD.w),
-        Expanded(
-          child: Text(
-            label,
-            style: AppDesignSystem.bodyMedium.copyWith(
-              color: AppDesignSystem.neutral600,
-            ),
-          ),
-        ),
-        Text(
-          value,
-          style: AppDesignSystem.bodyMedium.copyWith(
-            color: AppDesignSystem.neutral900,
-            fontWeight: AppDesignSystem.medium,
-          ),
-        ),
-      ],
-    );
-  }
+  State<_JourneySection> createState() => _JourneySectionState();
 }
 
-/// Read-only "Current weight" stat derived from the trainee's OWN progress
-/// entries (latest one with a weight), plus a quick "record today's weight"
-/// action. There is no stored current-weight field — a [ProgressEntry] is the
-/// single source of truth. Loaded from [MyProgressCubit]; the boilerplate
-/// [GetModel] drives its state (no manual emit).
-class _CurrentWeightSection extends StatefulWidget {
-  const _CurrentWeightSection();
-
-  @override
-  State<_CurrentWeightSection> createState() => _CurrentWeightSectionState();
-}
-
-class _CurrentWeightSectionState extends State<_CurrentWeightSection> {
+class _JourneySectionState extends State<_JourneySection> {
   GetModelCubit? _model;
 
-  static String _n(double v) =>
-      v == v.roundToDouble() ? v.toInt().toString() : v.toStringAsFixed(1);
+  @override
+  void initState() {
+    super.initState();
+    widget.refreshSignal?.addListener(_onRefreshSignal);
+  }
 
-  /// Entries are Date-desc, so the first with a non-null weight is the latest.
+  @override
+  void didUpdateWidget(covariant _JourneySection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.refreshSignal != widget.refreshSignal) {
+      oldWidget.refreshSignal?.removeListener(_onRefreshSignal);
+      widget.refreshSignal?.addListener(_onRefreshSignal);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.refreshSignal?.removeListener(_onRefreshSignal);
+    super.dispose();
+  }
+
+  /// Re-fetch the recent progress entries so the derived current weight reflects
+  /// an entry just added on the Progress tab.
+  void _onRefreshSignal() => _model?.getModel();
+
   static double? _latestWeight(List<ProgressEntryModel> entries) {
     for (final e in entries) {
       if (e.weightKg != null) return e.weightKg;
@@ -322,8 +287,7 @@ class _CurrentWeightSectionState extends State<_CurrentWeightSection> {
   }
 
   /// Logs today's weight: updates the trainee's OWN entry for today if one
-  /// exists (preserving its other measurements), otherwise creates a new entry
-  /// for today. A coach-authored today-entry is never edited (F4 blocks it).
+  /// exists (preserving its other measurements), otherwise creates a new entry.
   Future<void> _record(List<ProgressEntryModel> entries) async {
     final cubit = context.read<MyProgressCubit>();
     final value = await showDialog<double>(
@@ -332,9 +296,8 @@ class _CurrentWeightSectionState extends State<_CurrentWeightSection> {
     );
     if (value == null || !mounted) return;
     final now = DateTime.now();
-    final ownToday = entries
-        .where((e) => !e.isCoachAuthored && _isToday(e.date))
-        .toList();
+    final ownToday =
+        entries.where((e) => !e.isCoachAuthored && _isToday(e.date)).toList();
     final result = ownToday.isNotEmpty
         ? await cubit.updateEntry(
             UpdateMyProgressParams(
@@ -375,52 +338,229 @@ class _CurrentWeightSectionState extends State<_CurrentWeightSection> {
       onCubitCreated: (c) => _model = c,
       useCaseCallBack: () => cubit.fetchRecent(),
       loadingWidget: SizedBox(
-        height: 72.h,
+        height: 150.h,
         child: const Center(child: CircularProgressIndicator()),
       ),
       modelBuilder: (entries) {
-        final w = _latestWeight(entries);
-        return AppCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+        final current = _latestWeight(entries);
+        return _JourneyPanel(
+          start: widget.startWeight,
+          current: current,
+          target: widget.targetWeight,
+          onRecord: () => _record(entries),
+        );
+      },
+    );
+  }
+}
+
+class _JourneyPanel extends StatelessWidget {
+  final double? start;
+  final double? current;
+  final double? target;
+  final VoidCallback onRecord;
+
+  const _JourneyPanel({
+    required this.start,
+    required this.current,
+    required this.target,
+    required this.onRecord,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final hasRail = start != null &&
+        target != null &&
+        current != null &&
+        start != target;
+
+    double? progress;
+    double? toGo;
+    if (hasRail) {
+      progress = ((current! - start!) / (target! - start!)).clamp(0.0, 1.0);
+      toGo = (target! - current!).abs();
+    }
+
+    return Container(
+      padding: EdgeInsets.all(AppDesignSystem.spacingLG.w),
+      decoration: BoxDecoration(
+        color: AppDesignSystem.surfaceRaised,
+        borderRadius: BorderRadius.circular(AppDesignSystem.radiusLG.r),
+        border: Border.all(color: AppDesignSystem.borderColor),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
             children: [
-              Row(
-                children: [
-                  Icon(
-                    Icons.monitor_weight_outlined,
-                    size: AppDesignSystem.iconSizeSM.sp,
-                    color: AppDesignSystem.primaryColor,
-                  ),
-                  SizedBox(width: AppDesignSystem.spacingMD.w),
-                  Expanded(
-                    child: Text(
-                      'current_weight_kg'.tr(),
-                      style: AppDesignSystem.bodyMedium.copyWith(
-                        color: AppDesignSystem.neutral600,
-                      ),
-                    ),
-                  ),
-                  Text(
-                    w == null
-                        ? 'no_weight_logged'.tr()
-                        : '${_n(w)} ${'unit_kg'.tr()}',
-                    style: AppDesignSystem.bodyLarge.copyWith(
-                      color: w == null
-                          ? AppDesignSystem.neutral400
-                          : AppDesignSystem.neutral900,
-                      fontWeight: AppDesignSystem.semiBold,
-                    ),
-                  ),
-                ],
+              AppIcon(AppIcons.gauge,
+                  size: AppDesignSystem.iconSizeSM,
+                  color: AppDesignSystem.primaryStrong),
+              SizedBox(width: AppDesignSystem.spacingXS.w),
+              Expanded(
+                child: Text(
+                  'body_composition'.tr(),
+                  style: AppDesignSystem.h6
+                      .copyWith(color: AppDesignSystem.textPrimary),
+                ),
               ),
-              SizedBox(height: AppDesignSystem.spacingSM.h),
-              AppButton(
-                text: 'record_current_weight'.tr(),
-                icon: Icons.add,
-                variant: AppButtonVariant.outline,
-                size: AppButtonSize.small,
-                fullWidth: true,
-                onPressed: () => _record(entries),
+              if (progress != null)
+                Text(
+                  'percent_value'.tr(args: ['${(progress * 100).round()}']),
+                  style: TextStyle(
+                    fontFamily: AppDesignSystem.fontFamily,
+                    fontSize: AppDesignSystem.fontSizeLG.sp,
+                    fontWeight: AppDesignSystem.extraBold,
+                    color: AppDesignSystem.primaryStrong,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
+                ),
+            ],
+          ),
+          SizedBox(height: AppDesignSystem.spacingLG.h),
+          if (hasRail)
+            _Rail(
+              start: start!,
+              current: current!,
+              target: target!,
+              progress: progress!,
+            )
+          else
+            _CurrentOnly(current: current),
+          if (hasRail) ...[
+            SizedBox(height: AppDesignSystem.spacingMD.h),
+            Center(
+              child: Text(
+                toGo! < 0.05
+                    ? 'goal_reached'.tr()
+                    : 'weight_to_go'.tr(args: [_n(toGo)]),
+                style: AppDesignSystem.bodySmall
+                    .copyWith(color: AppDesignSystem.textMuted),
+              ),
+            ),
+          ],
+          SizedBox(height: AppDesignSystem.spacingLG.h),
+          _ChamferAction(
+            icon: Icons.add,
+            label: 'record_current_weight'.tr(),
+            onTap: onRecord,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The rail: a sunken track with a Volt fill from START to the current marker,
+/// a floating current-weight pill above it, and start/goal end anchors. RTL-safe
+/// via [PositionedDirectional] (fills from the leading edge).
+class _Rail extends StatelessWidget {
+  final double start;
+  final double current;
+  final double target;
+  final double progress;
+
+  const _Rail({
+    required this.start,
+    required this.current,
+    required this.target,
+    required this.progress,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, c) {
+        final w = c.maxWidth;
+        const pillW = 78.0;
+        final trackTop = 46.h;
+        final markerX = (w * progress - pillW / 2).clamp(0.0, w - pillW);
+        final markerCenter = (w * progress).clamp(6.0, w - 6.0);
+
+        return SizedBox(
+          height: 96.h,
+          child: Stack(
+            children: [
+              // Track (sunken).
+              PositionedDirectional(
+                start: 0,
+                end: 0,
+                top: trackTop,
+                child: Container(
+                  height: 10.h,
+                  decoration: BoxDecoration(
+                    color: AppDesignSystem.surfaceSunken,
+                    borderRadius:
+                        BorderRadius.circular(AppDesignSystem.radiusFull.r),
+                    border: Border.all(color: AppDesignSystem.borderColor),
+                  ),
+                ),
+              ),
+              // Filled portion START → current.
+              PositionedDirectional(
+                start: 0,
+                top: trackTop,
+                width: markerCenter,
+                child: Container(
+                  height: 10.h,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        AppDesignSystem.primaryColor.withValues(alpha: 0.5),
+                        AppDesignSystem.primaryColor,
+                      ],
+                    ),
+                    borderRadius:
+                        BorderRadius.circular(AppDesignSystem.radiusFull.r),
+                  ),
+                ),
+              ),
+              // Marker dot on the track.
+              PositionedDirectional(
+                start: markerCenter - 7,
+                top: trackTop - 2.h,
+                child: Container(
+                  width: 14.w,
+                  height: 14.w,
+                  decoration: BoxDecoration(
+                    color: AppDesignSystem.primaryColor,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                        color: AppDesignSystem.surfaceRaised, width: 2.5),
+                    boxShadow: [
+                      BoxShadow(
+                        color:
+                            AppDesignSystem.primaryColor.withValues(alpha: 0.5),
+                        blurRadius: 10,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              // Floating current-weight pill above the marker.
+              PositionedDirectional(
+                start: markerX,
+                top: 0,
+                child: _CurrentPill(value: current, width: pillW),
+              ),
+              // Start / Goal end anchors.
+              PositionedDirectional(
+                start: 0,
+                top: trackTop + 18.h,
+                child: _Anchor(
+                  labelKey: 'starting',
+                  value: '${_n(start)} ${'unit_kg'.tr()}',
+                  align: CrossAxisAlignment.start,
+                ),
+              ),
+              PositionedDirectional(
+                end: 0,
+                top: trackTop + 18.h,
+                child: _Anchor(
+                  labelKey: 'goal',
+                  value: '${_n(target)} ${'unit_kg'.tr()}',
+                  align: CrossAxisAlignment.end,
+                ),
               ),
             ],
           ),
@@ -430,8 +570,512 @@ class _CurrentWeightSectionState extends State<_CurrentWeightSection> {
   }
 }
 
-/// Minimal numeric weight input (kg) for the quick "record today's weight"
-/// flow. Returns the entered value via `Navigator.pop`, or `null` if cancelled.
+class _CurrentPill extends StatelessWidget {
+  final double value;
+  final double width;
+
+  const _CurrentPill({required this.value, required this.width});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: width.w,
+      child: Column(
+        children: [
+          Text(
+            'now'.tr().toUpperCase(),
+            style: TextStyle(
+              fontFamily: AppDesignSystem.fontFamily,
+              fontSize: AppDesignSystem.fontSizeXS.sp,
+              fontWeight: AppDesignSystem.bold,
+              letterSpacing: 1,
+              color: AppDesignSystem.primaryStrong,
+            ),
+          ),
+          SizedBox(height: 1.h),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                Text(
+                  _n(value),
+                  style: TextStyle(
+                    fontFamily: AppDesignSystem.fontFamily,
+                    fontSize: AppDesignSystem.fontSize2XL.sp,
+                    fontWeight: AppDesignSystem.extraBold,
+                    height: 1,
+                    letterSpacing: -0.5,
+                    color: AppDesignSystem.textPrimary,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
+                ),
+                SizedBox(width: 2.w),
+                Text(
+                  'unit_kg'.tr(),
+                  style: AppDesignSystem.labelSmall
+                      .copyWith(color: AppDesignSystem.textFaint),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Anchor extends StatelessWidget {
+  final String labelKey;
+  final String value;
+  final CrossAxisAlignment align;
+
+  const _Anchor({
+    required this.labelKey,
+    required this.value,
+    required this.align,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: align,
+      children: [
+        Text(
+          labelKey.tr().toUpperCase(),
+          style: TextStyle(
+            fontFamily: AppDesignSystem.fontFamily,
+            fontSize: AppDesignSystem.fontSizeXS.sp,
+            fontWeight: AppDesignSystem.bold,
+            letterSpacing: 1,
+            color: AppDesignSystem.textFaint,
+          ),
+        ),
+        SizedBox(height: 2.h),
+        Text(
+          value,
+          style: AppDesignSystem.labelMedium.copyWith(
+            color: AppDesignSystem.textMuted,
+            fontFeatures: const [FontFeature.tabularFigures()],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Fallback when there aren't enough anchors to draw the rail: just the current
+/// weight, big.
+class _CurrentOnly extends StatelessWidget {
+  final double? current;
+  const _CurrentOnly({required this.current});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Text(
+          current != null ? _n(current!) : '—',
+          style: TextStyle(
+            fontFamily: AppDesignSystem.fontFamily,
+            fontSize: AppDesignSystem.fontSize4XL.sp,
+            fontWeight: AppDesignSystem.extraBold,
+            height: 1,
+            letterSpacing: -1,
+            color: current != null
+                ? AppDesignSystem.textPrimary
+                : AppDesignSystem.textFaint,
+            fontFeatures: const [FontFeature.tabularFigures()],
+          ),
+        ),
+        SizedBox(width: AppDesignSystem.spacingXS.w),
+        Padding(
+          padding: EdgeInsets.only(bottom: 4.h),
+          child: Text(
+            current != null ? 'unit_kg'.tr() : 'no_weight_logged'.tr(),
+            style: AppDesignSystem.bodySmall
+                .copyWith(color: AppDesignSystem.textFaint),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ============================================================================
+// Spec grid — the detail "spec sheet"
+// ============================================================================
+
+class _SpecGrid extends StatelessWidget {
+  final TraineeModel profile;
+  final int? age;
+
+  const _SpecGrid({required this.profile, required this.age});
+
+  @override
+  Widget build(BuildContext context) {
+    final p = profile;
+    final items = <_SpecData>[
+      _SpecData(
+        icon: AppIcon(AppIcons.target,
+            size: AppDesignSystem.iconSizeXS,
+            color: AppDesignSystem.primaryStrong),
+        label: 'training_goal'.tr(),
+        value: p.goal.labelKey.tr(),
+      ),
+      _SpecData(
+        icon: AppIcon(AppIcons.profile,
+            size: AppDesignSystem.iconSizeXS,
+            color: AppDesignSystem.primaryStrong),
+        label: 'gender'.tr(),
+        value: p.gender.labelKey.tr(),
+      ),
+      _SpecData(
+        icon: Icon(Icons.cake_outlined,
+            size: AppDesignSystem.iconSizeXS.sp,
+            color: AppDesignSystem.primaryStrong),
+        label: 'birth_date'.tr(),
+        value: _fmtDate(p.birthDate),
+      ),
+      _SpecData(
+        icon: Icon(Icons.straighten_outlined,
+            size: AppDesignSystem.iconSizeXS.sp,
+            color: AppDesignSystem.primaryStrong),
+        label: 'height_cm'.tr(),
+        value: _num(p.heightCm, 'unit_cm'.tr()),
+      ),
+      _SpecData(
+        icon: Icon(Icons.phone_outlined,
+            size: AppDesignSystem.iconSizeXS.sp,
+            color: AppDesignSystem.primaryStrong),
+        label: 'phone'.tr(),
+        value: (p.phoneNumber ?? '').isNotEmpty ? p.phoneNumber! : '—',
+      ),
+      _SpecData(
+        icon: Icon(Icons.alternate_email_outlined,
+            size: AppDesignSystem.iconSizeXS.sp,
+            color: AppDesignSystem.primaryStrong),
+        label: 'email'.tr(),
+        value: (p.email ?? '').isNotEmpty ? p.email! : '—',
+      ),
+    ];
+
+    return Column(
+      children: [
+        for (var i = 0; i < items.length; i += 2)
+          Padding(
+            padding: EdgeInsets.only(bottom: AppDesignSystem.spacingSM.h),
+            child: IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(child: _SpecTile(data: items[i])),
+                  SizedBox(width: AppDesignSystem.spacingSM.w),
+                  if (i + 1 < items.length)
+                    Expanded(child: _SpecTile(data: items[i + 1]))
+                  else
+                    const Expanded(child: SizedBox()),
+                ],
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _SpecData {
+  final Widget icon;
+  final String label;
+  final String value;
+
+  _SpecData({required this.icon, required this.label, required this.value});
+}
+
+class _SpecTile extends StatelessWidget {
+  final _SpecData data;
+  const _SpecTile({required this.data});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.all(AppDesignSystem.spacingMD.w),
+      decoration: BoxDecoration(
+        color: AppDesignSystem.surfaceRaised,
+        borderRadius: BorderRadius.circular(AppDesignSystem.radiusMD.r),
+        border: Border.all(color: AppDesignSystem.borderColor),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 30.w,
+            height: 30.w,
+            alignment: Alignment.center,
+            decoration: ShapeDecoration(
+              color: AppDesignSystem.primaryColor.withValues(alpha: 0.10),
+              shape: const ChamferBorder(cut: 8),
+            ),
+            child: data.icon,
+          ),
+          SizedBox(height: AppDesignSystem.spacingSM.h),
+          Text(
+            data.label.toUpperCase(),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontFamily: AppDesignSystem.fontFamily,
+              fontSize: AppDesignSystem.fontSizeXS.sp,
+              fontWeight: AppDesignSystem.bold,
+              letterSpacing: 0.8,
+              color: AppDesignSystem.textFaint,
+            ),
+          ),
+          SizedBox(height: 3.h),
+          Text(
+            data.value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: AppDesignSystem.bodyLarge.copyWith(
+              color: AppDesignSystem.textPrimary,
+              fontWeight: AppDesignSystem.semiBold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ============================================================================
+// Control deck — actions as premium chamfered rows
+// ============================================================================
+
+class _ControlDeck extends StatelessWidget {
+  final VoidCallback onEdit;
+  final VoidCallback onNotes;
+  final VoidCallback onChangePassword;
+  final VoidCallback onLogout;
+
+  const _ControlDeck({
+    required this.onEdit,
+    required this.onNotes,
+    required this.onChangePassword,
+    required this.onLogout,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppDesignSystem.surfaceRaised,
+        borderRadius: BorderRadius.circular(AppDesignSystem.radiusLG.r),
+        border: Border.all(color: AppDesignSystem.borderColor),
+      ),
+      child: Column(
+        children: [
+          _ControlRow(
+            icon: Icons.edit_outlined,
+            label: 'edit_profile'.tr(),
+            onTap: onEdit,
+            first: true,
+          ),
+          _divider(),
+          _ControlRow(
+            icon: Icons.sticky_note_2_outlined,
+            label: 'coach_notes'.tr(),
+            onTap: onNotes,
+          ),
+          _divider(),
+          _ControlRow(
+            icon: Icons.lock_outline,
+            label: 'change_password'.tr(),
+            onTap: onChangePassword,
+          ),
+          _divider(),
+          _ControlRow(
+            icon: Icons.logout,
+            label: 'logout'.tr(),
+            onTap: onLogout,
+            danger: true,
+            last: true,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _divider() => Divider(
+    height: 1,
+    thickness: 1,
+    indent: AppDesignSystem.spacingMD.w,
+    endIndent: AppDesignSystem.spacingMD.w,
+    color: AppDesignSystem.borderColor,
+  );
+}
+
+class _ControlRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final bool danger;
+  final bool first;
+  final bool last;
+
+  const _ControlRow({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.danger = false,
+    this.first = false,
+    this.last = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final tint =
+        danger ? AppDesignSystem.errorColor : AppDesignSystem.primaryStrong;
+    final radius = BorderRadius.vertical(
+      top: Radius.circular(first ? AppDesignSystem.radiusLG.r : 0),
+      bottom: Radius.circular(last ? AppDesignSystem.radiusLG.r : 0),
+    );
+    return Material(
+      color: Colors.transparent,
+      borderRadius: radius,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: radius,
+        child: Padding(
+          padding: EdgeInsets.symmetric(
+            horizontal: AppDesignSystem.spacingMD.w,
+            vertical: AppDesignSystem.spacingMD.h,
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 36.w,
+                height: 36.w,
+                alignment: Alignment.center,
+                decoration: ShapeDecoration(
+                  color: tint.withValues(alpha: 0.12),
+                  shape: const ChamferBorder(cut: 9),
+                ),
+                child: Icon(icon,
+                    size: AppDesignSystem.iconSizeSM.sp, color: tint),
+              ),
+              SizedBox(width: AppDesignSystem.spacingMD.w),
+              Expanded(
+                child: Text(
+                  label,
+                  style: AppDesignSystem.bodyLarge.copyWith(
+                    color: danger
+                        ? AppDesignSystem.errorColor
+                        : AppDesignSystem.textPrimary,
+                    fontWeight: AppDesignSystem.semiBold,
+                  ),
+                ),
+              ),
+              Icon(
+                Icons.chevron_right,
+                size: AppDesignSystem.iconSizeSM.sp,
+                color: AppDesignSystem.textFaint,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ============================================================================
+// Shared bits
+// ============================================================================
+
+class _SectionLabel extends StatelessWidget {
+  final String icon;
+  final String title;
+
+  const _SectionLabel({required this.icon, required this.title});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        AppIcon(icon,
+            size: AppDesignSystem.iconSizeSM,
+            color: AppDesignSystem.primaryStrong),
+        SizedBox(width: AppDesignSystem.spacingXS.w),
+        Text(
+          title,
+          style:
+              AppDesignSystem.h6.copyWith(color: AppDesignSystem.textPrimary),
+        ),
+      ],
+    );
+  }
+}
+
+/// A full-width chamfered action — the Apex answer to a "button": an outlined
+/// equipment-tag with a Volt border and a chamfer-clipped ripple.
+class _ChamferAction extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  const _ChamferAction({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    const shape = ChamferBorder(cut: 12);
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        customBorder: shape,
+        child: Container(
+          height: 48.h,
+          alignment: Alignment.center,
+          decoration: ShapeDecoration(
+            color: AppDesignSystem.primaryColor.withValues(alpha: 0.08),
+            shape: ChamferBorder(
+              cut: 12,
+              side: BorderSide(
+                color: AppDesignSystem.primaryColor.withValues(alpha: 0.55),
+                width: 1.4,
+              ),
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon,
+                  size: AppDesignSystem.iconSizeSM.sp,
+                  color: AppDesignSystem.primaryStrong),
+              SizedBox(width: AppDesignSystem.spacingXS.w),
+              Text(
+                label,
+                style: AppDesignSystem.labelLarge.copyWith(
+                  color: AppDesignSystem.primaryStrong,
+                  fontWeight: AppDesignSystem.bold,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Minimal numeric weight input (kg) for the quick "record today's weight" flow.
 class _RecordWeightDialog extends StatefulWidget {
   final double? initial;
 
@@ -471,7 +1115,7 @@ class _RecordWeightDialogState extends State<_RecordWeightDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      backgroundColor: AppDesignSystem.surfaceWhite,
+      backgroundColor: AppDesignSystem.surfaceRaised,
       title: Text('record_current_weight'.tr()),
       content: Form(
         key: _formKey,

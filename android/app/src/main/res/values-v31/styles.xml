@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Android 12+ (API 31+) uses the SplashScreen API instead of the plain
+         windowBackground drawable. Brand it: near-black background with the
+         Ascent monogram on a dark tile, so cold start opens on-brand (not the
+         default launcher icon). -->
+    <style name="LaunchTheme" parent="@android:style/Theme.Black.NoTitleBar">
+        <item name="android:windowBackground">@drawable/launch_background</item>
+        <item name="android:colorBackground">@color/apex_ink</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowSplashScreenBackground">@color/apex_ink</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/apex_monogram</item>
+        <item name="android:windowSplashScreenIconBackgroundColor">@color/apex_tile</item>
+    </style>
+    <style name="NormalTheme" parent="@android:style/Theme.Black.NoTitleBar">
+        <item name="android:windowBackground">@color/apex_ink</item>
+        <item name="android:colorBackground">@color/apex_ink</item>
+    </style>
+</resources>

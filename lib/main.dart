@@ -63,8 +63,10 @@ Future<void> main() async {
 class CoachApp extends StatelessWidget {
   const CoachApp({super.key});
 
-  ThemeMode get _themeMode =>
-      CacheHelper.theme == 'dark' ? ThemeMode.dark : ThemeMode.light;
+  // Apex v3 ships DARK-FIRST — the black/lime "hero" mode is the single
+  // supported theme. The light "day" palette is defined in ApexColors for a
+  // future runtime toggle, but is not wired to CacheHelper.theme yet.
+  ThemeMode get _themeMode => ThemeMode.dark;
 
   @override
   Widget build(BuildContext context) {

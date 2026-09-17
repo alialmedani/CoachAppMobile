@@ -1,10 +1,13 @@
 import 'package:coachappmobile/core/boilerplate/get_model/cubits/get_model_cubit.dart';
 import 'package:coachappmobile/core/boilerplate/get_model/widgets/get_model.dart';
 import 'package:coachappmobile/core/constant/app_design_system.dart';
+import 'package:coachappmobile/core/constant/app_icons/app_icons.dart';
+import 'package:coachappmobile/core/ui/shapes/chamfer.dart';
+import 'package:coachappmobile/core/ui/widgets/app_icon.dart';
 import 'package:coachappmobile/core/ui/widgets/modern/modern_components.dart';
 import 'package:coachappmobile/features/auth/constants/coachapp_permissions.dart';
 import 'package:coachappmobile/features/auth/cubit/session_cubit.dart';
-import 'package:easy_localization/easy_localization.dart';
+import 'package:easy_localization/easy_localization.dart' hide TextDirection;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -64,14 +67,20 @@ class _ProgressScreenState extends State<ProgressScreen> {
     final canCreate =
         context.read<SessionCubit>().can(CoachPermissions.progressCreate);
     return Scaffold(
-      backgroundColor: AppDesignSystem.surfaceLight,
+      backgroundColor: AppDesignSystem.surfaceCanvas,
       appBar: AppTopBar(title: 'progress'.tr(), subtitle: widget.traineeName),
       floatingActionButton: canCreate
           ? FloatingActionButton.extended(
+              heroTag: 'fab_progress',
               onPressed: () => _openEditor(cubit),
               backgroundColor: AppDesignSystem.primaryColor,
-              foregroundColor: Colors.white,
-              icon: const Icon(Icons.add),
+              foregroundColor: AppDesignSystem.onPrimary,
+              shape: const ChamferBorder(cut: 16),
+              icon: AppIcon(
+                AppIcons.plus,
+                size: AppDesignSystem.iconSizeSM,
+                color: AppDesignSystem.onPrimary,
+              ),
               label: Text('add_progress'.tr()),
             )
           : null,
@@ -148,18 +157,31 @@ class _EntryRow extends StatelessWidget {
       onTap: onTap,
       child: Row(
         children: [
-          Icon(
-            Icons.monitor_weight_outlined,
-            color: AppDesignSystem.primaryColor,
-            size: AppDesignSystem.iconSizeSM.sp,
+          Container(
+            width: 40.w,
+            height: 40.w,
+            alignment: Alignment.center,
+            decoration: ShapeDecoration(
+              color: AppDesignSystem.primaryColor.withValues(alpha: 0.12),
+              shape: const ChamferBorder(cut: 10),
+            ),
+            child: Icon(
+              Icons.monitor_weight_outlined,
+              color: AppDesignSystem.primaryStrong,
+              size: AppDesignSystem.iconSizeSM.sp,
+            ),
           ),
           SizedBox(width: AppDesignSystem.spacingMD.w),
           Expanded(
-            child: Text(
-              date,
-              style: AppDesignSystem.bodyLarge.copyWith(
-                color: AppDesignSystem.neutral900,
-                fontWeight: AppDesignSystem.semiBold,
+            child: Directionality(
+              textDirection: TextDirection.ltr,
+              child: Text(
+                date,
+                style: AppDesignSystem.bodyLarge.copyWith(
+                  color: AppDesignSystem.textPrimary,
+                  fontWeight: AppDesignSystem.bold,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
               ),
             ),
           ),

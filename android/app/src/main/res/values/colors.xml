@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Apex near-black canvas (ApexColors.darkCanvas) — used by the launch
+         screen so cold start opens dark and hands off to the Flutter splash /
+         Orbit loader with no bright flash. -->
+    <color name="apex_ink">#FF0A0B0D</color>
+    <!-- Raised surface (ApexColors.darkRaised) — the monogram tile behind the
+         Android 12+ splash icon. -->
+    <color name="apex_tile">#FF15171B</color>
+</resources>

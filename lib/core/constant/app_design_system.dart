@@ -1,55 +1,80 @@
 import 'package:flutter/material.dart';
 
-/// Modern Design System for JasimExpress
-/// Professional, clean, and merchant-friendly
+import 'apex_colors/apex_colors.dart';
+
+/// Apex v3 Design System for CoachApp.
+///
+/// DARK-FIRST. These static tokens are re-pointed at [ApexColors]' dark palette
+/// so the whole app (~2000 call sites) re-skins from one place, with no need to
+/// migrate call sites to a context resolver.
 class AppDesignSystem {
   // ==================== COLORS ====================
 
-  /// Primary brand color - Professional teal/blue
-  static const Color primaryColor = Color(0xFF0F766E); // Teal 700
-  static const Color primaryLight = Color(0xFF14B8A6); // Teal 500
-  static const Color primaryDark = Color(0xFF0D5B52); // Teal 800
-  static const Color primarySurface = Color(0xFFCCFBF1); // Teal 100
+  /// Primary brand — Volt acid lime. Text placed ON it MUST be [onPrimary]
+  /// (ink), never white — white-on-lime is a hard contrast fail.
+  static const Color primaryColor = ApexColors.volt;
+  static const Color primaryLight = ApexColors.voltStrongDark;
+  static const Color primaryDark = ApexColors.voltDeep;
+  static const Color primarySurface = ApexColors.limeSoftDark;
+  static const Color onPrimary = ApexColors.onLime;
+  static const Color primaryStrong = ApexColors.voltStrongDark;
 
-  /// Secondary/Accent color - Vibrant orange for CTAs
-  static const Color accentColor = Color(0xFFF97316); // Orange 500
-  static const Color accentLight = Color(0xFFFB923C); // Orange 400
-  static const Color accentDark = Color(0xFFEA580C); // Orange 600
-  static const Color accentSurface = Color(0xFFFFEDD5); // Orange 100
+  /// Secondary/energy — Blaze orange.
+  static const Color accentColor = ApexColors.blaze;
+  static const Color accentLight = ApexColors.blazeStrongDark;
+  static const Color accentDark = ApexColors.blazeStrongLight;
+  static const Color accentSurface = ApexColors.blazeSoftDark;
+  static const Color onAccent = ApexColors.onBlaze;
 
-  /// Neutral colors - Clean gray scale
-  static const Color neutral50 = Color(0xFFFAFAFA);
-  static const Color neutral100 = Color(0xFFF5F5F5);
-  static const Color neutral200 = Color(0xFFE5E5E5);
-  static const Color neutral300 = Color(0xFFD4D4D4);
-  static const Color neutral400 = Color(0xFFA3A3A3);
-  static const Color neutral500 = Color(0xFF737373);
-  static const Color neutral600 = Color(0xFF525252);
-  static const Color neutral700 = Color(0xFF404040);
-  static const Color neutral800 = Color(0xFF262626);
-  static const Color neutral900 = Color(0xFF171717);
+  /// Neutral scale — INVERTED for dark-first.
+  ///
+  /// In Apex the ramp means: HIGH number = TEXT (light), LOW number = SURFACE
+  /// (dark). This inversion is deliberate — the codebase uses `neutral900` as
+  /// primary text and `neutral50/100` as surfaces, so inverting re-skins both
+  /// correctly in one move. DO NOT "fix" this back to a light→dark ramp.
+  static const Color neutral50 = ApexColors.darkRaised; // raised surface
+  static const Color neutral100 = ApexColors.darkSunken; // sunken / chip fill
+  static const Color neutral200 = ApexColors.darkBorder; // border / divider
+  static const Color neutral300 = ApexColors.darkBorderStrong; // strong border
+  static const Color neutral400 = ApexColors.darkFaint; // faint text
+  static const Color neutral500 = ApexColors.darkMuted; // muted text
+  static const Color neutral600 = Color(0xFFB4B9AF); // secondary text
+  static const Color neutral700 = Color(0xFFCBCFC6); // secondary/strong text
+  static const Color neutral800 = Color(0xFFE2E4DD); // near-primary text
+  static const Color neutral900 = ApexColors.darkText; // primary text
 
   /// Status colors
-  static const Color successColor = Color(0xFF10B981); // Green 500
-  static const Color successLight = Color(0xFF34D399); // Green 400
-  static const Color successSurface = Color(0xFFD1FAE5); // Green 100
+  static const Color successColor = ApexColors.goodDark;
+  static const Color successLight = Color(0xFF5BD9B0);
+  static const Color successSurface = ApexColors.goodSoftDark;
 
-  static const Color errorColor = Color(0xFFEF4444); // Red 500
-  static const Color errorLight = Color(0xFFF87171); // Red 400
-  static const Color errorSurface = Color(0xFFFEE2E2); // Red 100
+  static const Color errorColor = ApexColors.critDark;
+  static const Color errorLight = Color(0xFFF58480);
+  static const Color errorSurface = ApexColors.critSoftDark;
 
-  static const Color warningColor = Color(0xFFF59E0B); // Amber 500
-  static const Color warningLight = Color(0xFFFBBF24); // Amber 400
-  static const Color warningSurface = Color(0xFFFEF3C7); // Amber 100
+  static const Color warningColor = ApexColors.warnDark;
+  static const Color warningLight = Color(0xFFF0C06B);
+  static const Color warningSurface = ApexColors.warnSoftDark;
 
-  static const Color infoColor = Color(0xFF3B82F6); // Blue 500
-  static const Color infoLight = Color(0xFF60A5FA); // Blue 400
-  static const Color infoSurface = Color(0xFFDBEAFE); // Blue 100
+  static const Color infoColor = ApexColors.infoDark;
+  static const Color infoLight = Color(0xFF79A6EF);
+  static const Color infoSurface = ApexColors.infoSoftDark;
 
-  /// Surface colors
-  static const Color surfaceWhite = Color(0xFFFFFFFF);
-  static const Color surfaceLight = Color(0xFFFAFAFA);
-  static const Color surfaceCard = Color(0xFFFFFFFF);
+  /// Surface colors — dark-first.
+  static const Color surfaceWhite = ApexColors.darkRaised;
+  static const Color surfaceLight = ApexColors.darkCanvas;
+  static const Color surfaceCard = ApexColors.darkRaised;
+
+  /// Semantic surface/text aliases (theme-agnostic names for the seam).
+  static const Color surfaceCanvas = ApexColors.darkCanvas;
+  static const Color surfaceRaised = ApexColors.darkRaised;
+  static const Color surfaceSunken = ApexColors.darkSunken;
+  static const Color surfaceOverlay = ApexColors.darkOverlay;
+  static const Color borderColor = ApexColors.darkBorder;
+  static const Color borderStrong = ApexColors.darkBorderStrong;
+  static const Color textPrimary = ApexColors.darkText;
+  static const Color textMuted = ApexColors.darkMuted;
+  static const Color textFaint = ApexColors.darkFaint;
 
   // ==================== TYPOGRAPHY ====================
 

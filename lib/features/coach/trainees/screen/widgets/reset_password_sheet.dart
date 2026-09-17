@@ -161,7 +161,7 @@ class _ResetPasswordSheetState extends State<_ResetPasswordSheet> {
                   child: Text(
                     'reset_password'.tr(),
                     style: AppDesignSystem.labelLarge.copyWith(
-                      color: Colors.white,
+                      color: AppDesignSystem.onPrimary,
                       fontWeight: AppDesignSystem.semiBold,
                     ),
                   ),

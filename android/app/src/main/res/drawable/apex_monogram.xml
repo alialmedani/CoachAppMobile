@@ -1,0 +1,14 @@
+<!-- Apex Ascent monogram — the "A" glyph (Volt upstroke + light counter),
+     centred with padding for the Android 12+ splash icon slot. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#C6F536"
+        android:pathData="M28,32 L48,32 L80,76 L60,76 Z" />
+    <path
+        android:fillColor="#F3F5EF"
+        android:pathData="M28,76 L44,52 L54,66 L44,76 Z" />
+</vector>

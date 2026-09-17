@@ -152,6 +152,12 @@ class CacheHelper {
     await box.put('fcm_topics', topics);
   }
 
+  /// The id of the newest coach note the trainee has already opened. Purely
+  /// client-side (no backend "read" flag): drives the "new coach note" surface
+  /// on Today. Cleared on sign-out so it never leaks across users on a device.
+  static Future<void> setLastSeenNoteId(String id) =>
+      box.put('last_seen_note_id', id);
+
   ////////////////////////////////Get///////////////////////////////
 
   static String get lang => box.get(languageValue) ?? 'ar';
@@ -186,6 +192,8 @@ class CacheHelper {
     if (!box.containsKey(realestateId)) return null;
     return "${box.get(realestateId)}";
   }
+
+  static String? get lastSeenNoteId => box.get('last_seen_note_id');
 
   static bool get firstTime => box.get(isFirstTime) ?? true;
   static int? get expiresin => box.get(expiresIn);
@@ -224,6 +232,7 @@ class CacheHelper {
   static Future<void> clearSession() async {
     await clearToken();
     await box.delete('fcm_topics');
+    await box.delete('last_seen_note_id');
     await box.delete('stored_accounts_list');
     await box.delete(userModel);
     await box.delete(customerInfo);

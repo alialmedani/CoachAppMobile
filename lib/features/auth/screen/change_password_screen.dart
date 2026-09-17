@@ -142,7 +142,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                   child: Text(
                     'change_password'.tr(),
                     style: AppDesignSystem.labelLarge.copyWith(
-                      color: Colors.white,
+                      color: AppDesignSystem.onPrimary,
                       fontWeight: AppDesignSystem.semiBold,
                     ),
                   ),

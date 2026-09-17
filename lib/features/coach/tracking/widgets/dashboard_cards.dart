@@ -1,4 +1,5 @@
 import 'package:coachappmobile/core/constant/app_design_system.dart';
+import 'package:coachappmobile/core/ui/widgets/apex/gauge_meter.dart';
 import 'package:coachappmobile/core/ui/widgets/modern/modern_components.dart';
 import 'package:coachappmobile/features/coach/nutrition_plans/screen/widgets/macro_summary_card.dart';
 import 'package:coachappmobile/features/trainee/today/data/model/nutrition_adherence_model.dart';
@@ -107,85 +108,16 @@ class _RangeAdherenceCard extends StatelessWidget {
     final title = range.daysInRange <= 7
         ? 'weekly_average'.tr()
         : 'range_average_adherence'.tr();
-    return AppCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                Icons.insights_outlined,
-                size: AppDesignSystem.iconSizeSM.sp,
-                color: AppDesignSystem.primaryColor,
-              ),
-              SizedBox(width: AppDesignSystem.spacingXS.w),
-              Expanded(
-                child: Text(
-                  title,
-                  style: AppDesignSystem.h6.copyWith(
-                    color: AppDesignSystem.neutral900,
-                  ),
-                ),
-              ),
-              if (logged)
-                Text(
-                  'percent_value'.tr(args: ['${pct.round()}']),
-                  style: AppDesignSystem.labelLarge.copyWith(
-                    color: AppDesignSystem.primaryColor,
-                    fontWeight: AppDesignSystem.semiBold,
-                  ),
-                ),
-            ],
-          ),
-          SizedBox(height: AppDesignSystem.spacingSM.h),
-          if (logged) ...[
-            Text(
-              'average_daily_calories_adherence'.tr(),
-              style: AppDesignSystem.bodySmall.copyWith(
-                color: AppDesignSystem.neutral500,
-              ),
-            ),
-            SizedBox(height: AppDesignSystem.spacingXS.h),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(AppDesignSystem.radiusFull.r),
-              child: LinearProgressIndicator(
-                value: (pct / 100).clamp(0.0, 1.0),
-                minHeight: 6.h,
-                backgroundColor: AppDesignSystem.neutral200,
-                valueColor: const AlwaysStoppedAnimation<Color>(
-                  AppDesignSystem.primaryColor,
-                ),
-              ),
-            ),
-            SizedBox(height: AppDesignSystem.spacingSM.h),
-          ] else ...[
-            Text(
-              'not_logged_yet_range'.tr(),
-              style: AppDesignSystem.bodyMedium.copyWith(
-                color: AppDesignSystem.neutral600,
-              ),
-            ),
-            SizedBox(height: AppDesignSystem.spacingSM.h),
-          ],
-          Row(
-            children: [
-              Icon(
-                Icons.event_available_outlined,
-                size: AppDesignSystem.iconSizeXS.sp,
-                color: AppDesignSystem.neutral400,
-              ),
-              SizedBox(width: AppDesignSystem.spacingXS.w),
-              Text(
-                'days_logged_of_range'.tr(
-                  args: ['${range.daysLogged}', '${range.daysInRange}'],
-                ),
-                style: AppDesignSystem.bodySmall.copyWith(
-                  color: AppDesignSystem.neutral500,
-                ),
-              ),
-            ],
-          ),
-        ],
+    return _GaugeStatCard(
+      icon: Icons.insights_outlined,
+      title: title,
+      caption: 'adherence'.tr(),
+      percent: logged ? pct : null,
+      primaryLine: logged
+          ? 'average_daily_calories_adherence'.tr()
+          : 'not_logged_yet_range'.tr(),
+      secondaryLine: 'days_logged_of_range'.tr(
+        args: ['${range.daysLogged}', '${range.daysInRange}'],
       ),
     );
   }
@@ -196,69 +128,84 @@ class _WorkoutCompletionCard extends StatelessWidget {
 
   const _WorkoutCompletionCard({required this.completion});
 
-  static String _pct(double? v) => v == null ? '—' : '${v.round()}';
-
   @override
   Widget build(BuildContext context) {
     final planned = completion.plannedSessions ?? 0;
     final done = completion.completedSessions;
-    final fraction = planned > 0 ? (done / planned).clamp(0.0, 1.0) : 0.0;
+    final pct = completion.completionPercent ??
+        (planned > 0 ? (done / planned) * 100 : null);
+    return _GaugeStatCard(
+      icon: Icons.fitness_center_outlined,
+      title: 'workout_completion'.tr(),
+      caption: 'sessions'.tr(),
+      percent: pct,
+      primaryLine: 'sessions_done_of_planned'.tr(args: ['$done', '$planned']),
+      secondaryLine: 'over_weeks'.tr(args: ['${completion.weeks}']),
+    );
+  }
+}
+
+/// A tracking KPI card built around the Apex [GaugeMeter]: the gauge on the
+/// leading edge (arc caps at 100%), the metric title, and two supporting lines.
+class _GaugeStatCard extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String caption;
+  final double? percent;
+  final String primaryLine;
+  final String secondaryLine;
+
+  const _GaugeStatCard({
+    required this.icon,
+    required this.title,
+    required this.caption,
+    required this.percent,
+    required this.primaryLine,
+    required this.secondaryLine,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final frac = ((percent ?? 0) / 100).clamp(0.0, 1.0);
     return AppCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Row(
-            children: [
-              Icon(
-                Icons.fitness_center_outlined,
-                size: AppDesignSystem.iconSizeSM.sp,
-                color: AppDesignSystem.primaryColor,
-              ),
-              SizedBox(width: AppDesignSystem.spacingXS.w),
-              Expanded(
-                child: Text(
-                  'workout_completion'.tr(),
-                  style: AppDesignSystem.h6.copyWith(
-                    color: AppDesignSystem.neutral900,
-                  ),
+          GaugeMeter(value: frac, size: 84.w, caption: caption),
+          SizedBox(width: AppDesignSystem.spacingMD.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(icon,
+                        size: AppDesignSystem.iconSizeSM.sp,
+                        color: AppDesignSystem.primaryStrong),
+                    SizedBox(width: AppDesignSystem.spacingXS.w),
+                    Expanded(
+                      child: Text(
+                        title,
+                        style: AppDesignSystem.h6
+                            .copyWith(color: AppDesignSystem.textPrimary),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-              if (completion.completionPercent != null)
+                SizedBox(height: AppDesignSystem.spacingXS.h),
                 Text(
-                  'percent_value'.tr(
-                    args: [_pct(completion.completionPercent)],
-                  ),
-                  style: AppDesignSystem.labelLarge.copyWith(
-                    color: AppDesignSystem.primaryColor,
-                    fontWeight: AppDesignSystem.semiBold,
+                  primaryLine,
+                  style: AppDesignSystem.bodySmall
+                      .copyWith(color: AppDesignSystem.textMuted),
+                ),
+                SizedBox(height: AppDesignSystem.spacing2XS.h),
+                Text(
+                  secondaryLine,
+                  style: AppDesignSystem.labelMedium.copyWith(
+                    color: AppDesignSystem.textFaint,
+                    fontFeatures: const [FontFeature.tabularFigures()],
                   ),
                 ),
-            ],
-          ),
-          SizedBox(height: AppDesignSystem.spacingSM.h),
-          Text(
-            'sessions_done_of_planned'.tr(args: ['$done', '$planned']),
-            style: AppDesignSystem.bodyMedium.copyWith(
-              color: AppDesignSystem.neutral700,
-            ),
-          ),
-          SizedBox(height: AppDesignSystem.spacingXS.h),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(AppDesignSystem.radiusFull.r),
-            child: LinearProgressIndicator(
-              value: fraction,
-              minHeight: 6.h,
-              backgroundColor: AppDesignSystem.neutral200,
-              valueColor: const AlwaysStoppedAnimation<Color>(
-                AppDesignSystem.primaryColor,
-              ),
-            ),
-          ),
-          SizedBox(height: AppDesignSystem.spacingXS.h),
-          Text(
-            'over_weeks'.tr(args: ['${completion.weeks}']),
-            style: AppDesignSystem.bodySmall.copyWith(
-              color: AppDesignSystem.neutral500,
+              ],
             ),
           ),
         ],

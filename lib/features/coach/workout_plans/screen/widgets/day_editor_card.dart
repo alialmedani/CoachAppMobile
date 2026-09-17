@@ -235,7 +235,7 @@ class _WeekdaySelector extends StatelessWidget {
   }) {
     final Color labelColor = disabled
         ? AppDesignSystem.neutral400
-        : (isSelected ? Colors.white : AppDesignSystem.neutral600);
+        : (isSelected ? AppDesignSystem.onPrimary : AppDesignSystem.neutral600);
     return Padding(
       padding: EdgeInsetsDirectional.only(end: AppDesignSystem.spacingXS.w),
       child: ChoiceChip(

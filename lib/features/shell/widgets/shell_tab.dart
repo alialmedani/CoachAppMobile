@@ -19,10 +19,15 @@ class ShellTab {
   /// The full-screen body rendered for this tab.
   final Widget body;
 
+  /// Optional Apex bespoke SVG icon (an [AppIcons] path) used by the
+  /// [ControlBarNav]. Falls back to [activeIcon]/[inactiveIcon] elsewhere.
+  final String? navIcon;
+
   const ShellTab({
     required this.labelKey,
     required this.activeIcon,
     required this.inactiveIcon,
     required this.body,
+    this.navIcon,
   });
 }

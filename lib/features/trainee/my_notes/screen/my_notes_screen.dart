@@ -1,4 +1,5 @@
 import 'package:coachappmobile/core/boilerplate/get_model/widgets/get_model.dart';
+import 'package:coachappmobile/core/classes/cashe_helper.dart';
 import 'package:coachappmobile/core/constant/app_design_system.dart';
 import 'package:coachappmobile/core/ui/widgets/modern/modern_components.dart';
 import 'package:coachappmobile/features/coach/tracking/data/model/trainee_note_model.dart';
@@ -29,6 +30,13 @@ class MyNotesScreen extends StatelessWidget {
       appBar: AppTopBar(title: 'coach_notes'.tr()),
       body: GetModel<List<TraineeNoteModel>>(
         useCaseCallBack: () => cubit.fetchRecent(),
+        // Viewing the list (from Today's "new note" surface OR the Profile entry)
+        // marks the newest note as seen, so the Today surface clears.
+        onSuccess: (notes) {
+          if (notes.isNotEmpty && (notes.first.id ?? '').isNotEmpty) {
+            CacheHelper.setLastSeenNoteId(notes.first.id!);
+          }
+        },
         modelBuilder: (notes) => notes.isEmpty
             ? ListView(
                 children: [

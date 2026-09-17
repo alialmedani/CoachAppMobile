@@ -28,6 +28,12 @@ class WorkoutLogModel {
 
   factory WorkoutLogModel.fromJson(Map<String, dynamic> json) {
     final rawEntries = json['entries'] as List<dynamic>? ?? [];
+    // Sort entries by their persisted `order` so the log view/editor lists the
+    // exercises in the same sequence as the plan (see WorkoutDayModel.fromJson).
+    final entries = rawEntries
+        .map((e) => WorkoutLogEntryModel.fromJson(e as Map<String, dynamic>))
+        .toList()
+      ..sort((a, b) => a.order.compareTo(b.order));
     return WorkoutLogModel(
       id: json['id']?.toString(),
       traineeId: json['traineeId']?.toString(),
@@ -35,9 +41,7 @@ class WorkoutLogModel {
       workoutDayId: json['workoutDayId']?.toString(),
       date: json['date'] != null ? DateTime.tryParse(json['date']) : null,
       notes: json['notes'],
-      entries: rawEntries
-          .map((e) => WorkoutLogEntryModel.fromJson(e as Map<String, dynamic>))
-          .toList(),
+      entries: entries,
     );
   }
 

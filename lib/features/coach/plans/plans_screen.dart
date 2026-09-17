@@ -1,4 +1,5 @@
 import 'package:coachappmobile/core/constant/app_design_system.dart';
+import 'package:coachappmobile/core/ui/widgets/apex/apex_segmented.dart';
 import 'package:coachappmobile/core/ui/widgets/modern/modern_components.dart';
 import 'package:coachappmobile/features/auth/constants/coachapp_permissions.dart';
 import 'package:coachappmobile/features/auth/cubit/session_cubit.dart';
@@ -48,13 +49,11 @@ class _PlansScreenState extends State<PlansScreen> {
       if (widget.showWorkout)
         _PlanSegment(
           labelKey: 'workout_plans',
-          icon: Icons.fitness_center,
           screen: const WorkoutPlansListScreen(embedded: true),
         ),
       if (widget.showNutrition)
         _PlanSegment(
           labelKey: 'nutrition_plans',
-          icon: Icons.restaurant_menu_outlined,
           screen: const NutritionPlansListScreen(embedded: true),
         ),
     ];
@@ -97,16 +96,15 @@ class _PlansScreenState extends State<PlansScreen> {
           : Column(
               children: [
                 if (segments.length > 1)
-                  Container(
-                    color: AppDesignSystem.surfaceWhite,
+                  Padding(
                     padding: EdgeInsets.fromLTRB(
                       AppDesignSystem.spacingMD.w,
                       0,
                       AppDesignSystem.spacingMD.w,
                       AppDesignSystem.spacingSM.h,
                     ),
-                    child: _Segmented(
-                      segments: segments,
+                    child: ApexSegmented(
+                      labels: [for (final s in segments) s.labelKey.tr()],
                       index: safeIndex,
                       onChanged: (i) => setState(() => _index = i),
                     ),
@@ -125,86 +123,10 @@ class _PlansScreenState extends State<PlansScreen> {
 
 class _PlanSegment {
   final String labelKey;
-  final IconData icon;
   final Widget screen;
 
   const _PlanSegment({
     required this.labelKey,
-    required this.icon,
     required this.screen,
   });
-}
-
-class _Segmented extends StatelessWidget {
-  final List<_PlanSegment> segments;
-  final int index;
-  final ValueChanged<int> onChanged;
-
-  const _Segmented({
-    required this.segments,
-    required this.index,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.all(AppDesignSystem.spacing2XS.w),
-      decoration: BoxDecoration(
-        color: AppDesignSystem.neutral100,
-        borderRadius: BorderRadius.circular(AppDesignSystem.radiusMD.r),
-      ),
-      child: Row(
-        children: [
-          for (var i = 0; i < segments.length; i++)
-            _seg(i, segments[i].labelKey.tr(), segments[i].icon),
-        ],
-      ),
-    );
-  }
-
-  Widget _seg(int i, String label, IconData icon) {
-    final selected = index == i;
-    return Expanded(
-      child: InkWell(
-        borderRadius: BorderRadius.circular(AppDesignSystem.radiusSM.r),
-        onTap: () => onChanged(i),
-        child: AnimatedContainer(
-          duration: AppDesignSystem.durationFast,
-          padding: EdgeInsets.symmetric(vertical: AppDesignSystem.spacingSM.h),
-          decoration: BoxDecoration(
-            color: selected ? AppDesignSystem.surfaceWhite : Colors.transparent,
-            borderRadius: BorderRadius.circular(AppDesignSystem.radiusSM.r),
-            boxShadow: selected ? AppDesignSystem.shadowSM : null,
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                icon,
-                size: AppDesignSystem.iconSizeXS.sp,
-                color: selected
-                    ? AppDesignSystem.primaryColor
-                    : AppDesignSystem.neutral500,
-              ),
-              SizedBox(width: AppDesignSystem.spacingXS.w),
-              Flexible(
-                child: Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppDesignSystem.labelMedium.copyWith(
-                    color: selected
-                        ? AppDesignSystem.primaryColor
-                        : AppDesignSystem.neutral500,
-                    fontWeight: AppDesignSystem.semiBold,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../constant/app_colors/app_colors.dart';
 import '../../../constant/app_design_system.dart';
+import '../../shapes/chamfer.dart';
 
 enum AppCardVariant { elevated, outlined, flat }
 
@@ -16,6 +17,13 @@ class AppCard extends StatelessWidget {
   final bool withBorder;
   final Color? borderColor;
 
+  /// When true the card uses the Apex signature chamfer (equipment-tag) shape
+  /// instead of a rounded rectangle. Off by default — existing call sites are
+  /// unaffected.
+  final bool chamfer;
+  final double? chamferCut;
+  final Set<ChamferCorner>? chamferCorners;
+
   const AppCard({
     super.key,
     required this.child,
@@ -27,21 +35,29 @@ class AppCard extends StatelessWidget {
     this.borderRadius,
     this.withBorder = false,
     this.borderColor,
+    this.chamfer = false,
+    this.chamferCut,
+    this.chamferCorners,
   });
 
   @override
   Widget build(BuildContext context) {
     final content = Container(
       padding: padding ?? EdgeInsets.all(AppDesignSystem.spacingMD.w),
-      decoration: BoxDecoration(
-        color:
-            backgroundColor ?? Theme.of(context).colorScheme.appCard,
-        borderRadius: BorderRadius.circular(
-          borderRadius?.r ?? AppDesignSystem.radiusLG.r,
-        ),
-        boxShadow: _getShadow(),
-        border: _getBorder(context),
-      ),
+      decoration: chamfer
+          ? ShapeDecoration(
+              color: backgroundColor ?? Theme.of(context).colorScheme.appCard,
+              shape: _chamferBorder(context),
+              shadows: _getShadow(),
+            )
+          : BoxDecoration(
+              color: backgroundColor ?? Theme.of(context).colorScheme.appCard,
+              borderRadius: BorderRadius.circular(
+                borderRadius?.r ?? AppDesignSystem.radiusLG.r,
+              ),
+              boxShadow: _getShadow(),
+              border: _getBorder(context),
+            ),
       child: child,
     );
 
@@ -52,9 +68,12 @@ class AppCard extends StatelessWidget {
           color: Colors.transparent,
           child: InkWell(
             onTap: onTap,
-            borderRadius: BorderRadius.circular(
-              borderRadius?.r ?? AppDesignSystem.radiusLG.r,
-            ),
+            customBorder: chamfer ? _chamferBorder(context) : null,
+            borderRadius: chamfer
+                ? null
+                : BorderRadius.circular(
+                    borderRadius?.r ?? AppDesignSystem.radiusLG.r,
+                  ),
             child: content,
           ),
         ),
@@ -63,6 +82,16 @@ class AppCard extends StatelessWidget {
 
     return Container(margin: margin, child: content);
   }
+
+  ChamferBorder _chamferBorder(BuildContext context) => ChamferBorder(
+    cut: (chamferCut ?? AppDesignSystem.radiusLG).r,
+    corners: chamferCorners ?? kApexTagCorners,
+    side: (variant == AppCardVariant.outlined || withBorder)
+        ? BorderSide(
+            color: borderColor ?? Theme.of(context).colorScheme.appBorder,
+          )
+        : BorderSide.none,
+  );
 
   List<BoxShadow>? _getShadow() {
     if (variant == AppCardVariant.elevated) {

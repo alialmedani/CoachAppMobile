@@ -72,7 +72,7 @@ class TraineeSubmitBar extends StatelessWidget {
             child: Text(
               label,
               style: AppDesignSystem.labelLarge.copyWith(
-                color: Colors.white,
+                color: AppDesignSystem.onPrimary,
                 fontWeight: AppDesignSystem.semiBold,
               ),
             ),

@@ -1,9 +1,11 @@
 import 'package:coachappmobile/core/boilerplate/get_model/widgets/get_model.dart';
 import 'package:coachappmobile/core/constant/app_design_system.dart';
+import 'package:coachappmobile/core/ui/shapes/chamfer.dart';
+import 'package:coachappmobile/core/ui/widgets/apex/apex_segmented.dart';
 import 'package:coachappmobile/core/ui/widgets/modern/modern_components.dart';
 import 'package:coachappmobile/features/trainee/nutrition_logs/data/model/nutrition_log_model.dart';
 import 'package:coachappmobile/features/trainee/workout_logs/data/model/workout_log_model.dart';
-import 'package:easy_localization/easy_localization.dart';
+import 'package:easy_localization/easy_localization.dart' hide TextDirection;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -39,15 +41,14 @@ class _CoachLogsScreenState extends State<CoachLogsScreen> {
   Widget build(BuildContext context) {
     final cubit = context.read<CoachLogCubit>()..setTrainee(widget.traineeId);
     return Scaffold(
-      backgroundColor: AppDesignSystem.surfaceLight,
+      backgroundColor: AppDesignSystem.surfaceCanvas,
       appBar: AppTopBar(title: 'logs'.tr(), subtitle: widget.traineeName),
       body: Column(
         children: [
           Padding(
             padding: EdgeInsets.all(AppDesignSystem.spacingMD.w),
-            child: _Segmented(
+            child: ApexSegmented(
               labels: ['tab_workout'.tr(), 'tab_nutrition'.tr()],
-              icons: const [Icons.fitness_center, Icons.restaurant],
               index: _index,
               onChanged: (i) => setState(() => _index = i),
             ),
@@ -74,7 +75,7 @@ class _WorkoutLogList extends StatelessWidget {
     return GetModel<List<WorkoutLogModel>>(
       useCaseCallBack: () => cubit.fetchWorkoutLogs(),
       modelBuilder: (logs) => logs.isEmpty
-          ? _empty('no_workout_logs'.tr())
+          ? _empty(Icons.fitness_center_outlined, 'no_workout_logs'.tr())
           : ListView.builder(
               padding: EdgeInsets.fromLTRB(
                 AppDesignSystem.spacingMD.w,
@@ -115,7 +116,7 @@ class _NutritionLogList extends StatelessWidget {
     return GetModel<List<NutritionLogModel>>(
       useCaseCallBack: () => cubit.fetchNutritionLogs(),
       modelBuilder: (logs) => logs.isEmpty
-          ? _empty('no_nutrition_logs'.tr())
+          ? _empty(Icons.restaurant_outlined, 'no_nutrition_logs'.tr())
           : ListView.builder(
               padding: EdgeInsets.fromLTRB(
                 AppDesignSystem.spacingMD.w,
@@ -145,96 +146,13 @@ class _NutritionLogList extends StatelessWidget {
   }
 }
 
-/// Inline segmented toggle (mirrors the Plans/Library tabs' segmented host).
-class _Segmented extends StatelessWidget {
-  final List<String> labels;
-  final List<IconData> icons;
-  final int index;
-  final ValueChanged<int> onChanged;
-
-  const _Segmented({
-    required this.labels,
-    required this.icons,
-    required this.index,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.all(AppDesignSystem.spacing2XS.w),
-      decoration: BoxDecoration(
-        color: AppDesignSystem.neutral100,
-        borderRadius: BorderRadius.circular(AppDesignSystem.radiusMD.r),
-      ),
-      child: Row(
-        children: [
-          for (var i = 0; i < labels.length; i++)
-            Expanded(
-              child: InkWell(
-                borderRadius: BorderRadius.circular(AppDesignSystem.radiusSM.r),
-                onTap: () => onChanged(i),
-                child: AnimatedContainer(
-                  duration: AppDesignSystem.durationFast,
-                  padding: EdgeInsets.symmetric(
-                    vertical: AppDesignSystem.spacingSM.h,
-                  ),
-                  decoration: BoxDecoration(
-                    color: index == i
-                        ? AppDesignSystem.surfaceWhite
-                        : Colors.transparent,
-                    borderRadius: BorderRadius.circular(
-                      AppDesignSystem.radiusSM.r,
-                    ),
-                    boxShadow: index == i ? AppDesignSystem.shadowSM : null,
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        icons[i],
-                        size: AppDesignSystem.iconSizeXS.sp,
-                        color: index == i
-                            ? AppDesignSystem.primaryColor
-                            : AppDesignSystem.neutral500,
-                      ),
-                      SizedBox(width: AppDesignSystem.spacingXS.w),
-                      Flexible(
-                        child: Text(
-                          labels[i],
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppDesignSystem.labelMedium.copyWith(
-                            color: index == i
-                                ? AppDesignSystem.primaryColor
-                                : AppDesignSystem.neutral500,
-                            fontWeight: AppDesignSystem.semiBold,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-Widget _empty(String message) => ListView(
-  children: [
-    SizedBox(height: 80.h),
-    Center(
-      child: Text(
-        message,
-        style: AppDesignSystem.bodyMedium.copyWith(
-          color: AppDesignSystem.neutral500,
-        ),
-      ),
-    ),
-  ],
+/// Empty state — now the shared [AppEmptyState] (was a bare centered Text), for
+/// parity with the progress/notes screens.
+Widget _empty(IconData icon, String title) => AppEmptyState(
+  icon: icon,
+  title: title,
+  subtitle: 'no_logs_subtitle'.tr(),
+  iconColor: AppDesignSystem.primaryColor,
 );
 
 class _LogRow extends StatelessWidget {
@@ -257,21 +175,36 @@ class _LogRow extends StatelessWidget {
       onTap: onTap,
       child: Row(
         children: [
-          Icon(
-            icon,
-            color: AppDesignSystem.primaryColor,
-            size: AppDesignSystem.iconSizeSM.sp,
+          Container(
+            width: 40.w,
+            height: 40.w,
+            alignment: Alignment.center,
+            decoration: ShapeDecoration(
+              color: AppDesignSystem.primaryColor.withValues(alpha: 0.12),
+              shape: const ChamferBorder(cut: 10),
+            ),
+            child: Icon(
+              icon,
+              color: AppDesignSystem.primaryStrong,
+              size: AppDesignSystem.iconSizeSM.sp,
+            ),
           ),
           SizedBox(width: AppDesignSystem.spacingMD.w),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  date,
-                  style: AppDesignSystem.bodyLarge.copyWith(
-                    color: AppDesignSystem.neutral900,
-                    fontWeight: AppDesignSystem.semiBold,
+                // Technical date string — force LTR so digits/hyphens don't
+                // visually reorder in Arabic.
+                Directionality(
+                  textDirection: TextDirection.ltr,
+                  child: Text(
+                    date,
+                    style: AppDesignSystem.bodyLarge.copyWith(
+                      color: AppDesignSystem.textPrimary,
+                      fontWeight: AppDesignSystem.bold,
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
                   ),
                 ),
                 if ((notes ?? '').isNotEmpty) ...[
@@ -281,7 +214,7 @@ class _LogRow extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: AppDesignSystem.bodySmall.copyWith(
-                      color: AppDesignSystem.neutral500,
+                      color: AppDesignSystem.textMuted,
                     ),
                   ),
                 ],
@@ -290,7 +223,7 @@ class _LogRow extends StatelessWidget {
           ),
           Icon(
             Icons.chevron_right,
-            color: AppDesignSystem.neutral400,
+            color: AppDesignSystem.textFaint,
             size: AppDesignSystem.iconSizeSM.sp,
           ),
         ],

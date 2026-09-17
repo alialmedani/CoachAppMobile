@@ -15,12 +15,18 @@ enum NutritionPlanCardAction { setActive, edit, delete }
 /// edit / delete.
 class NutritionPlanCard extends StatelessWidget {
   final NutritionPlanModel plan;
+
+  /// The assigned trainee's display name, resolved by the list screen from the
+  /// plan's `traineeId` (the plan DTO carries only the id). Null while it loads
+  /// or when unresolved — the row is then simply omitted.
+  final String? traineeName;
   final VoidCallback onTap;
   final ValueChanged<NutritionPlanCardAction> onAction;
 
   const NutritionPlanCard({
     super.key,
     required this.plan,
+    this.traineeName,
     required this.onTap,
     required this.onAction,
   });
@@ -67,6 +73,29 @@ class NutritionPlanCard extends StatelessWidget {
                     color: AppDesignSystem.neutral900,
                   ),
                 ),
+                if ((traineeName ?? '').isNotEmpty) ...[
+                  SizedBox(height: AppDesignSystem.spacing2XS.h),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.person_outline,
+                        size: AppDesignSystem.iconSizeXS.sp,
+                        color: AppDesignSystem.neutral400,
+                      ),
+                      SizedBox(width: AppDesignSystem.spacing2XS.w),
+                      Flexible(
+                        child: Text(
+                          traineeName!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppDesignSystem.bodySmall.copyWith(
+                            color: AppDesignSystem.neutral500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
                 SizedBox(height: AppDesignSystem.spacingXS.h),
                 Wrap(
                   spacing: AppDesignSystem.spacingXS.w,

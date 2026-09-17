@@ -108,7 +108,7 @@ class ProgressTrendChart extends StatelessWidget {
                   fillColor: AppDesignSystem.primaryColor.withValues(
                     alpha: 0.10,
                   ),
-                  gridColor: AppDesignSystem.neutral200,
+                  gridColor: AppDesignSystem.borderColor,
                 ),
               ),
             ),

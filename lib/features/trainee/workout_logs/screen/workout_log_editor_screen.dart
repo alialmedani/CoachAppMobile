@@ -294,7 +294,7 @@ class _SaveBar extends StatelessWidget {
             child: Text(
               'save_log'.tr(),
               style: AppDesignSystem.labelLarge.copyWith(
-                color: Colors.white,
+                color: AppDesignSystem.onPrimary,
                 fontWeight: AppDesignSystem.semiBold,
               ),
             ),

@@ -1,10 +1,13 @@
 import 'package:coachappmobile/core/boilerplate/get_model/cubits/get_model_cubit.dart';
 import 'package:coachappmobile/core/boilerplate/get_model/widgets/get_model.dart';
 import 'package:coachappmobile/core/constant/app_design_system.dart';
+import 'package:coachappmobile/core/constant/app_icons/app_icons.dart';
+import 'package:coachappmobile/core/ui/shapes/chamfer.dart';
+import 'package:coachappmobile/core/ui/widgets/app_icon.dart';
 import 'package:coachappmobile/core/ui/widgets/modern/modern_components.dart';
 import 'package:coachappmobile/features/auth/constants/coachapp_permissions.dart';
 import 'package:coachappmobile/features/auth/cubit/session_cubit.dart';
-import 'package:easy_localization/easy_localization.dart';
+import 'package:easy_localization/easy_localization.dart' hide TextDirection;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -56,14 +59,20 @@ class _NotesScreenState extends State<NotesScreen> {
     final canCreate =
         context.read<SessionCubit>().can(CoachPermissions.notesCreate);
     return Scaffold(
-      backgroundColor: AppDesignSystem.surfaceLight,
+      backgroundColor: AppDesignSystem.surfaceCanvas,
       appBar: AppTopBar(title: 'notes'.tr(), subtitle: widget.traineeName),
       floatingActionButton: canCreate
           ? FloatingActionButton.extended(
+              heroTag: 'fab_notes',
               onPressed: () => _openEditor(cubit),
               backgroundColor: AppDesignSystem.primaryColor,
-              foregroundColor: Colors.white,
-              icon: const Icon(Icons.add),
+              foregroundColor: AppDesignSystem.onPrimary,
+              shape: const ChamferBorder(cut: 16),
+              icon: AppIcon(
+                AppIcons.plus,
+                size: AppDesignSystem.iconSizeSM,
+                color: AppDesignSystem.onPrimary,
+              ),
               label: Text('add_note'.tr()),
             )
           : null,
@@ -96,19 +105,45 @@ class _NotesScreenState extends State<NotesScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        _fmtDate(notes[i].date),
-                        style: AppDesignSystem.labelMedium.copyWith(
-                          color: AppDesignSystem.neutral500,
-                        ),
+                      Row(
+                        children: [
+                          Container(
+                            width: 28.w,
+                            height: 28.w,
+                            alignment: Alignment.center,
+                            decoration: ShapeDecoration(
+                              color: AppDesignSystem.primaryColor
+                                  .withValues(alpha: 0.12),
+                              shape: const ChamferBorder(cut: 8),
+                            ),
+                            child: Icon(
+                              Icons.sticky_note_2_outlined,
+                              color: AppDesignSystem.primaryStrong,
+                              size: AppDesignSystem.iconSizeXS.sp,
+                            ),
+                          ),
+                          SizedBox(width: AppDesignSystem.spacingSM.w),
+                          Directionality(
+                            textDirection: TextDirection.ltr,
+                            child: Text(
+                              _fmtDate(notes[i].date),
+                              style: AppDesignSystem.labelMedium.copyWith(
+                                color: AppDesignSystem.textFaint,
+                                fontFeatures: const [
+                                  FontFeature.tabularFigures()
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                      SizedBox(height: AppDesignSystem.spacing2XS.h),
+                      SizedBox(height: AppDesignSystem.spacingSM.h),
                       Text(
                         notes[i].text,
                         maxLines: 3,
                         overflow: TextOverflow.ellipsis,
                         style: AppDesignSystem.bodyMedium.copyWith(
-                          color: AppDesignSystem.neutral800,
+                          color: AppDesignSystem.textPrimary,
                           height: 1.5,
                         ),
                       ),

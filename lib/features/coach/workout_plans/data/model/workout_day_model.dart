@@ -22,14 +22,19 @@ class WorkoutDayModel {
 
   factory WorkoutDayModel.fromJson(Map<String, dynamic> json) {
     final rawExercises = json['exercises'] as List<dynamic>? ?? [];
+    // Sort exercises by their persisted `order` so every surface that renders a
+    // day (coach PlanViewer, trainee plan detail, workout-log editor/view via
+    // draftFromDay) shows them in the same, coach-authored sequence.
+    final exercises = rawExercises
+        .map((e) => WorkoutExerciseModel.fromJson(e))
+        .toList()
+      ..sort((a, b) => a.order.compareTo(b.order));
     return WorkoutDayModel(
       id: json['id']?.toString(),
       name: json['name'] ?? '',
       order: json['order'] ?? 0,
       scheduledDay: Weekday.fromValue(json['scheduledDay']),
-      exercises: rawExercises
-          .map((e) => WorkoutExerciseModel.fromJson(e))
-          .toList(),
+      exercises: exercises,
     );
   }
 

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../apex_colors/apex_colors.dart';
+
 extension AppColors on ColorScheme {
-  static Color primary = const Color(0xffD40511);
+  static Color primary = ApexColors.volt;
   static Color secoundPrimary = const Color(0xffFFCC00);
   static const Color lighterBackground = Color(0xffF8F9FC);
   static const Color success = Color(0xff28A745);
@@ -93,19 +95,19 @@ extension AppColors on ColorScheme {
   static const Color lightBackgroundSoft = Color(0xFFF9FAFB);
   static const Color lightIconMuted = Color(0xFFD1D5DB);
 
-  // UI Dark colors
-  static const Color darkScaffold = Color(0xFF17181D);
-  static const Color darkCard = Color(0xFF1E1F26);
-  static const Color darkCardSoft = Color(0xFF171821);
-  static const Color darkTextPrimary = Color(0xFFE5E7EB);
-  static const Color darkTextSecondary = Color(0xFFA8ACB8);
-  static const Color darkTextStrong = Color(0xFFF3F4F6);
-  static const Color darkTextTertiary = Color(0xFF6B7280);
-  static const Color darkBorder = Color(0xFF2D2F3A);
-  static const Color darkSurfaceMuted = Color(0xFF252731);
-  static const Color darkBackgroundSoft = Color(0xFF1A1B24);
-  static const Color darkIconMuted = Color(0xFF4B5563);
-  static const Color darkError = Color(0xFFEF4444);
+  // UI Dark colors — Apex v3 (the shipping hero mode)
+  static const Color darkScaffold = ApexColors.darkCanvas;
+  static const Color darkCard = ApexColors.darkRaised;
+  static const Color darkCardSoft = ApexColors.darkSunken;
+  static const Color darkTextPrimary = ApexColors.darkText;
+  static const Color darkTextSecondary = ApexColors.darkMuted;
+  static const Color darkTextStrong = ApexColors.darkText;
+  static const Color darkTextTertiary = ApexColors.darkFaint;
+  static const Color darkBorder = ApexColors.darkBorder;
+  static const Color darkSurfaceMuted = ApexColors.darkOverlay;
+  static const Color darkBackgroundSoft = Color(0xFF101215);
+  static const Color darkIconMuted = ApexColors.darkFaint;
+  static const Color darkError = ApexColors.critDark;
 
   bool get isDark => brightness == Brightness.dark;
 
@@ -137,8 +139,8 @@ extension AppColors on ColorScheme {
   // Helper method to get primary color based on theme
   Color get appPrimary => primary;
 
-  // Helper method to get text on primary color
-  Color get appOnPrimary => Colors.white;
+  // Helper method to get text on primary color — Volt lime needs INK, not white.
+  Color get appOnPrimary => ApexColors.onLime;
 
   // Helper method to get shadow color based on theme
   Color get appShadow =>

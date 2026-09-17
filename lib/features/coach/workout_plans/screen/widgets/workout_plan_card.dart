@@ -14,12 +14,18 @@ enum WorkoutPlanCardAction { setActive, edit, delete }
 /// set-active / edit / delete.
 class WorkoutPlanCard extends StatelessWidget {
   final WorkoutPlanModel plan;
+
+  /// The assigned trainee's display name, resolved by the list screen from the
+  /// plan's `traineeId` (the plan DTO carries only the id). Null while it loads
+  /// or when unresolved — the row is then simply omitted.
+  final String? traineeName;
   final VoidCallback onTap;
   final ValueChanged<WorkoutPlanCardAction> onAction;
 
   const WorkoutPlanCard({
     super.key,
     required this.plan,
+    this.traineeName,
     required this.onTap,
     required this.onAction,
   });
@@ -63,6 +69,29 @@ class WorkoutPlanCard extends StatelessWidget {
                     color: AppDesignSystem.neutral900,
                   ),
                 ),
+                if ((traineeName ?? '').isNotEmpty) ...[
+                  SizedBox(height: AppDesignSystem.spacing2XS.h),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.person_outline,
+                        size: AppDesignSystem.iconSizeXS.sp,
+                        color: AppDesignSystem.neutral400,
+                      ),
+                      SizedBox(width: AppDesignSystem.spacing2XS.w),
+                      Flexible(
+                        child: Text(
+                          traineeName!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppDesignSystem.bodySmall.copyWith(
+                            color: AppDesignSystem.neutral500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
                 SizedBox(height: AppDesignSystem.spacingXS.h),
                 Wrap(
                   spacing: AppDesignSystem.spacingXS.w,

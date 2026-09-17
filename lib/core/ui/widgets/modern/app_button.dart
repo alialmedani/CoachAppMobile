@@ -147,11 +147,15 @@ class AppButton extends StatelessWidget {
   Color _getForegroundColor() {
     switch (variant) {
       case AppButtonVariant.primary:
+        // Volt lime fill → ink text (never white).
+        return AppDesignSystem.onPrimary;
       case AppButtonVariant.secondary:
       case AppButtonVariant.danger:
-        return Colors.white;
+        return AppDesignSystem.onAccent;
       case AppButtonVariant.outline:
-        return AppDesignSystem.primaryColor;
+        // Lime-as-text is unreadable on light but this is a dark-first app;
+        // use the readable "strong" lime.
+        return AppDesignSystem.primaryStrong;
       case AppButtonVariant.ghost:
         return AppDesignSystem.neutral700;
     }

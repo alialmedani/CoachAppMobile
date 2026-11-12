@@ -1,6 +1,9 @@
 import 'package:coachappmobile/core/constant/app_design_system.dart';
 import 'package:coachappmobile/core/ui/widgets/modern/modern_components.dart';
+import 'package:coachappmobile/core/ui/widgets/language_switcher.dart';
+import 'package:coachappmobile/core/utils/Navigation/navigation.dart';
 import 'package:coachappmobile/features/auth/cubit/session_cubit.dart';
+import 'package:coachappmobile/features/auth/screen/post_login_router.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -28,96 +31,86 @@ class ShellAccountScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: AppDesignSystem.surfaceLight,
-      appBar: AppTopBar(title: titleKey.tr()),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(AppDesignSystem.spacingMD.w),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Identity header
-            AppCard(
-              child: Row(
+      body: CustomScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
+          AppSliverTopBar(title: titleKey.tr()),
+          SliverPadding(
+            padding: EdgeInsets.all(AppDesignSystem.spacingMD.w),
+            sliver: SliverToBoxAdapter(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Container(
-                    width: 56.w,
-                    height: 56.w,
-                    alignment: Alignment.center,
-                    decoration: const BoxDecoration(
-                      color: AppDesignSystem.primarySurface,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.person_outline,
-                      color: AppDesignSystem.primaryColor,
-                      size: AppDesignSystem.iconSizeLG.sp,
-                    ),
-                  ),
-                  SizedBox(width: AppDesignSystem.spacingMD.w),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                  // Identity header
+                  AppCard(
+                    child: Row(
                       children: [
-                        Text(
-                          session?.userName ?? '',
-                          style: AppDesignSystem.h5.copyWith(
-                            color: AppDesignSystem.neutral900,
+                        Container(
+                          width: 56.w,
+                          height: 56.w,
+                          alignment: Alignment.center,
+                          decoration: const BoxDecoration(
+                            color: AppDesignSystem.primarySurface,
+                            shape: BoxShape.circle,
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                          child: Icon(
+                            Icons.person_outline,
+                            color: AppDesignSystem.primaryColor,
+                            size: AppDesignSystem.iconSizeLG.sp,
+                          ),
                         ),
-                        if (email.isNotEmpty) ...[
-                          SizedBox(height: AppDesignSystem.spacing2XS.h),
-                          Text(
-                            email,
-                            style: AppDesignSystem.bodySmall.copyWith(
-                              color: AppDesignSystem.neutral500,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                        SizedBox(width: AppDesignSystem.spacingMD.w),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                session?.userName ?? '',
+                                style: AppDesignSystem.h5.copyWith(
+                                  color: AppDesignSystem.neutral900,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              if (email.isNotEmpty) ...[
+                                SizedBox(height: AppDesignSystem.spacing2XS.h),
+                                Text(
+                                  email,
+                                  style: AppDesignSystem.bodySmall.copyWith(
+                                    color: AppDesignSystem.neutral500,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ],
                           ),
-                        ],
+                        ),
                       ],
                     ),
                   ),
-                ],
-              ),
-            ),
-            SizedBox(height: AppDesignSystem.spacingMD.h),
+                  SizedBox(height: AppDesignSystem.spacingMD.h),
 
-            // Profile / settings placeholder note
-            AppCard(
-              variant: AppCardVariant.outlined,
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.settings_outlined,
-                    color: AppDesignSystem.neutral400,
-                    size: AppDesignSystem.iconSizeMD.sp,
+                  // In-app language switcher (Arabic / English) — live + persisted.
+                  LanguageSwitcher(
+                    onChanged: () =>
+                        Navigation.pushAndRemoveUntil(const PostLoginRouter()),
                   ),
-                  SizedBox(width: AppDesignSystem.spacingMD.w),
-                  Expanded(
-                    child: Text(
-                      'coming_soon_subtitle'.tr(),
-                      style: AppDesignSystem.bodyMedium.copyWith(
-                        color: AppDesignSystem.neutral500,
-                      ),
-                    ),
+                  SizedBox(height: AppDesignSystem.spacingXL.h),
+
+                  // Logout — fully wired to the app-level session.
+                  AppButton(
+                    text: 'logout'.tr(),
+                    icon: Icons.logout,
+                    variant: AppButtonVariant.danger,
+                    fullWidth: true,
+                    onPressed: () => context.read<SessionCubit>().logout(),
                   ),
                 ],
               ),
             ),
-            SizedBox(height: AppDesignSystem.spacingXL.h),
-
-            // Logout — fully wired to the app-level session.
-            AppButton(
-              text: 'logout'.tr(),
-              icon: Icons.logout,
-              variant: AppButtonVariant.danger,
-              fullWidth: true,
-              onPressed: () => context.read<SessionCubit>().logout(),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

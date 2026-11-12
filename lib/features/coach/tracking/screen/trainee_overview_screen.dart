@@ -15,25 +15,28 @@ import '../cubit/coach_dashboard_cubit.dart';
 import '../data/model/trainee_dashboard_model.dart';
 import '../widgets/dashboard_cards.dart';
 
-/// Coach dashboard for one trainee, on the Apex language: a duotone hero with the
+/// Per-trainee overview (analytics), on the Apex language: a duotone hero with the
 /// readiness **Gauge** (a blended compliance score from the honest per-trainee
 /// data), an Apex segmented range picker, then the detailed adherence /
 /// completion instrument cards. Read-only; changing the range re-fetches.
-class CoachDashboardScreen extends StatefulWidget {
+///
+/// Named `TraineeOverviewScreen` (not `CoachDashboardScreen`) to avoid colliding
+/// with the coach home Command Center in `coach/dashboard/`.
+class TraineeOverviewScreen extends StatefulWidget {
   final String traineeId;
   final String? traineeName;
 
-  const CoachDashboardScreen({
+  const TraineeOverviewScreen({
     super.key,
     required this.traineeId,
     this.traineeName,
   });
 
   @override
-  State<CoachDashboardScreen> createState() => _CoachDashboardScreenState();
+  State<TraineeOverviewScreen> createState() => _TraineeOverviewScreenState();
 }
 
-class _CoachDashboardScreenState extends State<CoachDashboardScreen> {
+class _TraineeOverviewScreenState extends State<TraineeOverviewScreen> {
   static const _ranges = <CoachDashboardRange>[
     CoachDashboardRange.today,
     CoachDashboardRange.thisWeek,
@@ -77,6 +80,7 @@ class _CoachDashboardScreenState extends State<CoachDashboardScreen> {
               // Re-fetch when the window changes: a key derived from the
               // selected range rebuilds GetModel and re-runs the use case.
               key: ValueKey(cubit.range),
+              loadingWidget: AppSkeleton.dashboard(),
               useCaseCallBack: () => cubit.fetchSummary(),
               modelBuilder: (d) => SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),

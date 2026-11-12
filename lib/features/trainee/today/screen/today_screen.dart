@@ -1,5 +1,5 @@
 import 'package:coachappmobile/core/boilerplate/get_model/cubits/get_model_cubit.dart';
-import 'package:coachappmobile/core/boilerplate/get_model/widgets/get_model.dart';
+import 'package:coachappmobile/core/boilerplate/get_model/widgets/sliver_get_model.dart';
 import 'package:coachappmobile/core/classes/cashe_helper.dart';
 import 'package:coachappmobile/core/constant/app_design_system.dart';
 import 'package:coachappmobile/core/constant/app_icons/app_icons.dart';
@@ -169,47 +169,47 @@ class _TodayScreenState extends State<TodayScreen> {
     final today = context.read<MyTodayCubit>();
     return Scaffold(
       backgroundColor: AppDesignSystem.surfaceCanvas,
-      appBar: widget.embedded ? null : AppTopBar(title: 'today_title'.tr()),
-      body: GetModel<MyTodayModel>(
+      body: SliverGetModel<MyTodayModel>(
         onCubitCreated: (c) => _today = c,
+        loadingWidget: AppSkeleton.dashboard(),
         useCaseCallBack: () => today.fetchToday(),
-        modelBuilder: (model) => SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: EdgeInsets.fromLTRB(
-            AppDesignSystem.spacingMD.w,
-            AppDesignSystem.spacingMD.h,
-            AppDesignSystem.spacingMD.w,
-            AppDesignSystem.spacing3XL.h,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _HeroBanner(today: model),
-              SizedBox(height: AppDesignSystem.spacingXL.h),
-              // Surfaces a new coach note here so the trainee doesn't have to dig
-              // into Profile → Coach notes to discover it. Renders nothing (incl.
-              // spacing) when there's no unseen note.
-              const _CoachNoteCard(),
-              _WorkoutSection(
-                today: model,
-                onLog: () => _logWorkout(model),
-                onView: () => _viewWorkout(model),
-              ),
-              SizedBox(height: AppDesignSystem.spacingXL.h),
-              _SectionHeader(
-                title: 'todays_nutrition'.tr(),
-                trailing: model.hasActiveNutritionPlan
-                    ? _LoggedBadge(logged: model.alreadyLoggedNutritionToday)
-                    : null,
-              ),
-              SizedBox(height: AppDesignSystem.spacingSM.h),
-              _NutritionSection(
-                today: model,
-                onLog: () => _logNutrition(model),
-                onView: () => _viewNutrition(model),
-              ),
-            ],
-          ),
+        contentPadding: EdgeInsets.fromLTRB(
+          AppDesignSystem.spacingMD.w,
+          AppDesignSystem.spacingMD.h,
+          AppDesignSystem.spacingMD.w,
+          AppDesignSystem.spacing3XL.h,
+        ),
+        headerSlivers: [
+          if (!widget.embedded) AppSliverTopBar(title: 'today_title'.tr()),
+        ],
+        modelBuilder: (model) => Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _HeroBanner(today: model),
+            SizedBox(height: AppDesignSystem.spacingXL.h),
+            // Surfaces a new coach note here so the trainee doesn't have to dig
+            // into Profile → Coach notes to discover it. Renders nothing (incl.
+            // spacing) when there's no unseen note.
+            const _CoachNoteCard(),
+            _WorkoutSection(
+              today: model,
+              onLog: () => _logWorkout(model),
+              onView: () => _viewWorkout(model),
+            ),
+            SizedBox(height: AppDesignSystem.spacingXL.h),
+            _SectionHeader(
+              title: 'todays_nutrition'.tr(),
+              trailing: model.hasActiveNutritionPlan
+                  ? _LoggedBadge(logged: model.alreadyLoggedNutritionToday)
+                  : null,
+            ),
+            SizedBox(height: AppDesignSystem.spacingSM.h),
+            _NutritionSection(
+              today: model,
+              onLog: () => _logNutrition(model),
+              onView: () => _viewNutrition(model),
+            ),
+          ],
         ),
       ),
     );
@@ -261,21 +261,29 @@ class _HeroBanner extends StatelessWidget {
         ghostText: 'today_title'.tr(),
         child: Row(
           children: [
-            AppIcon(AppIcons.today,
-                size: AppDesignSystem.iconSizeLG,
-                color: AppDesignSystem.primaryStrong),
+            AppIcon(
+              AppIcons.today,
+              size: AppDesignSystem.iconSizeLG,
+              color: AppDesignSystem.primaryStrong,
+            ),
             SizedBox(width: AppDesignSystem.spacingMD.w),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('today_title'.tr(),
-                      style: AppDesignSystem.h4
-                          .copyWith(color: AppDesignSystem.textPrimary)),
+                  Text(
+                    'today_title'.tr(),
+                    style: AppDesignSystem.h4.copyWith(
+                      color: AppDesignSystem.textPrimary,
+                    ),
+                  ),
                   SizedBox(height: AppDesignSystem.spacing2XS.h),
-                  Text('no_active_workout_plan_subtitle'.tr(),
-                      style: AppDesignSystem.bodySmall
-                          .copyWith(color: AppDesignSystem.textMuted)),
+                  Text(
+                    'no_active_workout_plan_subtitle'.tr(),
+                    style: AppDesignSystem.bodySmall.copyWith(
+                      color: AppDesignSystem.textMuted,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -330,8 +338,9 @@ class _HeroBanner extends StatelessWidget {
                   SizedBox(height: 2.h),
                   Text(
                     subtitle,
-                    style: AppDesignSystem.bodySmall
-                        .copyWith(color: AppDesignSystem.textMuted),
+                    style: AppDesignSystem.bodySmall.copyWith(
+                      color: AppDesignSystem.textMuted,
+                    ),
                   ),
                 ],
               ],
@@ -419,15 +428,18 @@ class _WorkoutSection extends StatelessWidget {
       children: [
         Row(
           children: [
-            AppIcon(AppIcons.barbell,
-                size: AppDesignSystem.iconSizeSM,
-                color: AppDesignSystem.primaryStrong),
+            AppIcon(
+              AppIcons.barbell,
+              size: AppDesignSystem.iconSizeSM,
+              color: AppDesignSystem.primaryStrong,
+            ),
             SizedBox(width: AppDesignSystem.spacingXS.w),
             Expanded(
               child: Text(
                 'workout_circuit'.tr(),
-                style: AppDesignSystem.h6
-                    .copyWith(color: AppDesignSystem.textPrimary),
+                style: AppDesignSystem.h6.copyWith(
+                  color: AppDesignSystem.textPrimary,
+                ),
               ),
             ),
             Directionality(
@@ -529,9 +541,12 @@ class _MacroEqualizer extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('todays_intake'.tr(),
-              style: AppDesignSystem.h6
-                  .copyWith(color: AppDesignSystem.textPrimary)),
+          Text(
+            'todays_intake'.tr(),
+            style: AppDesignSystem.h6.copyWith(
+              color: AppDesignSystem.textPrimary,
+            ),
+          ),
           SizedBox(height: AppDesignSystem.spacingSM.h),
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
@@ -557,8 +572,9 @@ class _MacroEqualizer extends StatelessWidget {
                     t != null && t > 0
                         ? '/ ${_n(t)} ${'kcal'.tr()}'
                         : 'kcal'.tr(),
-                    style: AppDesignSystem.bodySmall
-                        .copyWith(color: AppDesignSystem.textFaint),
+                    style: AppDesignSystem.bodySmall.copyWith(
+                      color: AppDesignSystem.textFaint,
+                    ),
                   ),
                 ),
               ),
@@ -628,7 +644,9 @@ class _MacroColumn extends StatelessWidget {
             SizedBox(
               height: 64.h,
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(AppDesignSystem.radiusFull.r),
+                borderRadius: BorderRadius.circular(
+                  AppDesignSystem.radiusFull.r,
+                ),
                 child: Container(
                   width: 8.w,
                   color: AppDesignSystem.borderColor,
@@ -653,8 +671,9 @@ class _MacroColumn extends StatelessWidget {
             ),
             Text(
               label,
-              style: AppDesignSystem.labelSmall
-                  .copyWith(color: AppDesignSystem.textFaint),
+              style: AppDesignSystem.labelSmall.copyWith(
+                color: AppDesignSystem.textFaint,
+              ),
             ),
           ],
         ),
@@ -738,7 +757,9 @@ class _CoachNoteCardState extends State<_CoachNoteCard> {
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   color: AppDesignSystem.primaryColor.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(AppDesignSystem.radiusMD.r),
+                  borderRadius: BorderRadius.circular(
+                    AppDesignSystem.radiusMD.r,
+                  ),
                 ),
                 child: Icon(
                   Icons.sticky_note_2_outlined,
@@ -815,8 +836,9 @@ class _SectionHeader extends StatelessWidget {
         Expanded(
           child: Text(
             title,
-            style: AppDesignSystem.h5
-                .copyWith(color: AppDesignSystem.textPrimary),
+            style: AppDesignSystem.h5.copyWith(
+              color: AppDesignSystem.textPrimary,
+            ),
           ),
         ),
         ?trailing,
@@ -868,7 +890,11 @@ class _InfoCard extends StatelessWidget {
               color: color.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(AppDesignSystem.radiusMD.r),
             ),
-            child: AppIcon(icon, size: AppDesignSystem.iconSizeSM, color: color),
+            child: AppIcon(
+              icon,
+              size: AppDesignSystem.iconSizeSM,
+              color: color,
+            ),
           ),
           SizedBox(width: AppDesignSystem.spacingMD.w),
           Expanded(
@@ -885,8 +911,9 @@ class _InfoCard extends StatelessWidget {
                 SizedBox(height: AppDesignSystem.spacing2XS.h),
                 Text(
                   subtitle,
-                  style: AppDesignSystem.bodySmall
-                      .copyWith(color: AppDesignSystem.textMuted),
+                  style: AppDesignSystem.bodySmall.copyWith(
+                    color: AppDesignSystem.textMuted,
+                  ),
                 ),
               ],
             ),

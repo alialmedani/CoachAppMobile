@@ -1,5 +1,5 @@
 import 'package:coachappmobile/core/boilerplate/pagination/cubits/pagination_cubit.dart';
-import 'package:coachappmobile/core/boilerplate/pagination/widgets/pagination_list.dart';
+import 'package:coachappmobile/core/boilerplate/pagination/widgets/sliver_paginated_list.dart';
 import 'package:coachappmobile/core/constant/app_design_system.dart';
 import 'package:coachappmobile/core/ui/widgets/modern/modern_components.dart';
 import 'package:coachappmobile/core/utils/functions/debouncer.dart';
@@ -26,7 +26,17 @@ class NutritionPlanTemplatesListScreen extends StatefulWidget {
   /// segmented host (which owns the title); standalone use keeps it.
   final bool embedded;
 
-  const NutritionPlanTemplatesListScreen({super.key, this.embedded = false});
+  /// Slivers the host (the Templates segmented screen) injects at the very top
+  /// of this screen's scroll view — its "Templates" [AppSliverTopBar] +
+  /// segmented control — so they scroll away together with this screen's
+  /// search / list.
+  final List<Widget> hostHeaderSlivers;
+
+  const NutritionPlanTemplatesListScreen({
+    super.key,
+    this.embedded = false,
+    this.hostHeaderSlivers = const [],
+  });
 
   @override
   State<NutritionPlanTemplatesListScreen> createState() =>
@@ -189,9 +199,8 @@ class _NutritionPlanTemplatesListScreenState
   }
 
   void _snack(String message, Color color) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: color),
-    );
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message), backgroundColor: color));
   }
 
   @override
@@ -209,11 +218,9 @@ class _NutritionPlanTemplatesListScreenState
 
     return Scaffold(
       backgroundColor: AppDesignSystem.surfaceLight,
-      appBar: widget.embedded
-          ? null
-          : AppTopBar(title: 'nutrition_templates'.tr()),
       floatingActionButton: canCreate
           ? FloatingActionButton.extended(
+              heroTag: 'fab_nutrition_plan_templates',
               onPressed: () => _openCreate(cubit),
               backgroundColor: AppDesignSystem.primaryColor,
               foregroundColor: AppDesignSystem.onPrimary,
@@ -221,8 +228,41 @@ class _NutritionPlanTemplatesListScreenState
               label: Text('add_template'.tr()),
             )
           : null,
-      body: Column(
-        children: [
+      body: SliverPaginatedList<NutritionPlanModel>(
+        withPagination: true,
+        onCubitCreated: (c) => _pagination = c,
+        loadingWidget: AppSkeleton.list(),
+        repositoryCallBack: (data) => cubit.fetchTemplateList(data),
+        noDataWidget: AppEmptyState(
+          icon: Icons.restaurant_menu_outlined,
+          title: 'no_nutrition_templates'.tr(),
+          subtitle: 'no_nutrition_templates_subtitle'.tr(),
+          iconColor: AppDesignSystem.primaryColor,
+        ),
+        headerSlivers: [
+          ...widget.hostHeaderSlivers,
+          if (!widget.embedded)
+            AppSliverTopBar(title: 'nutrition_templates'.tr()),
+          _searchSliver(cubit),
+        ],
+        itemBuilder: (context, template, index) => NutritionPlanTemplateCard(
+          template: template,
+          canClone: canClone,
+          canEdit: canEdit,
+          canDelete: canDelete,
+          onTap: () => _openDetail(cubit, template),
+          onAction: (action) => _handleAction(cubit, template, action),
+        ),
+      ),
+    );
+  }
+
+  /// Search field — a scroll-away band that stays visible in every list state
+  /// (loading / empty / error). Templates carry no active state, so there are
+  /// no status filter chips here.
+  Widget _searchSliver(NutritionPlanTemplateCubit cubit) {
+    return SliverToBoxAdapter(
+      child:
           BlocBuilder<NutritionPlanTemplateCubit, NutritionPlanTemplateState>(
             builder: (context, state) => Container(
               color: AppDesignSystem.surfaceWhite,
@@ -258,39 +298,6 @@ class _NutritionPlanTemplatesListScreenState
               ),
             ),
           ),
-          Expanded(
-            child: PaginationList<NutritionPlanModel>(
-              withPagination: true,
-              onCubitCreated: (c) => _pagination = c,
-              repositoryCallBack: (data) => cubit.fetchTemplateList(data),
-              noDataWidget: AppEmptyState(
-                icon: Icons.restaurant_menu_outlined,
-                title: 'no_nutrition_templates'.tr(),
-                subtitle: 'no_nutrition_templates_subtitle'.tr(),
-                iconColor: AppDesignSystem.primaryColor,
-              ),
-              listBuilder: (list) => ListView.builder(
-                padding: EdgeInsets.fromLTRB(
-                  AppDesignSystem.spacingMD.w,
-                  AppDesignSystem.spacingSM.h,
-                  AppDesignSystem.spacingMD.w,
-                  AppDesignSystem.spacing4XL.h,
-                ),
-                itemCount: list.length,
-                itemBuilder: (context, index) => NutritionPlanTemplateCard(
-                  template: list[index],
-                  canClone: canClone,
-                  canEdit: canEdit,
-                  canDelete: canDelete,
-                  onTap: () => _openDetail(cubit, list[index]),
-                  onAction: (action) =>
-                      _handleAction(cubit, list[index], action),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

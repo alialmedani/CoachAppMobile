@@ -1,4 +1,5 @@
 import 'package:coachappmobile/core/boilerplate/get_model/widgets/get_model.dart';
+import 'package:coachappmobile/core/boilerplate/get_model/widgets/sliver_get_model.dart';
 import 'package:coachappmobile/core/constant/app_design_system.dart';
 import 'package:coachappmobile/core/constant/app_icons/app_icons.dart';
 import 'package:coachappmobile/core/di/injection.dart';
@@ -43,9 +44,18 @@ class MyNutritionPlansScreen extends StatelessWidget {
     final cubit = context.read<MyNutritionPlanCubit>();
     return Scaffold(
       backgroundColor: AppDesignSystem.surfaceCanvas,
-      appBar: embedded
-          ? null
-          : AppTopBar(
+      body: SliverGetModel<List<NutritionPlanModel>>(
+        useCaseCallBack: () => cubit.fetchMyNutritionPlans(),
+        loadingWidget: AppSkeleton.list(),
+        contentPadding: EdgeInsets.fromLTRB(
+          AppDesignSystem.spacingMD.w,
+          AppDesignSystem.spacingMD.h,
+          AppDesignSystem.spacingMD.w,
+          AppDesignSystem.spacing4XL.h,
+        ),
+        headerSlivers: [
+          if (!embedded)
+            AppSliverTopBar(
               title: 'my_nutrition_plans'.tr(),
               actions: [
                 IconButton(
@@ -56,31 +66,23 @@ class MyNutritionPlansScreen extends StatelessWidget {
                 ),
               ],
             ),
-      body: GetModel<List<NutritionPlanModel>>(
-        useCaseCallBack: () => cubit.fetchMyNutritionPlans(),
+        ],
         modelBuilder: (plans) {
           if (plans.isEmpty) {
-            return ListView(
-              children: [
-                SizedBox(height: AppDesignSystem.spacing4XL.h),
-                AppEmptyState(
-                  icon: Icons.restaurant_outlined,
-                  title: 'no_my_nutrition_plans'.tr(),
-                  subtitle: 'no_my_nutrition_plans_subtitle'.tr(),
-                  iconColor: AppDesignSystem.primaryColor,
-                ),
-              ],
+            return Padding(
+              padding: EdgeInsets.only(top: AppDesignSystem.spacing3XL.h),
+              child: AppEmptyState(
+                icon: Icons.restaurant_outlined,
+                title: 'no_my_nutrition_plans'.tr(),
+                subtitle: 'no_my_nutrition_plans_subtitle'.tr(),
+                iconColor: AppDesignSystem.primaryColor,
+              ),
             );
           }
           final active = plans.where((p) => p.isActive).toList();
           final previous = plans.where((p) => !p.isActive).toList();
-          return ListView(
-            padding: EdgeInsets.fromLTRB(
-              AppDesignSystem.spacingMD.w,
-              AppDesignSystem.spacingMD.h,
-              AppDesignSystem.spacingMD.w,
-              AppDesignSystem.spacing4XL.h,
-            ),
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               for (final p in active)
                 Padding(
@@ -107,7 +109,10 @@ class MyNutritionPlansScreen extends StatelessWidget {
   }
 
   void _open(
-      BuildContext context, MyNutritionPlanCubit cubit, NutritionPlanModel p) {
+    BuildContext context,
+    MyNutritionPlanCubit cubit,
+    NutritionPlanModel p,
+  ) {
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -166,8 +171,9 @@ class _FeaturedNutritionCard extends StatelessWidget {
                             summary.description!,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: AppDesignSystem.bodySmall
-                                .copyWith(color: AppDesignSystem.textMuted),
+                            style: AppDesignSystem.bodySmall.copyWith(
+                              color: AppDesignSystem.textMuted,
+                            ),
                           ),
                         ],
                       ],
@@ -203,7 +209,8 @@ class _MacroGlimpse extends StatelessWidget {
     final p = plan.totalProteinG, c = plan.totalCarbsG, f = plan.totalFatG;
     final pc = p * 4, cc = c * 4, fc = f * 9;
     final tot = (pc + cc + fc);
-    int flex(double x) => tot <= 0 ? 1 : (x / tot * 1000).round().clamp(1, 1000);
+    int flex(double x) =>
+        tot <= 0 ? 1 : (x / tot * 1000).round().clamp(1, 1000);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -229,8 +236,9 @@ class _MacroGlimpse extends StatelessWidget {
                 SizedBox(height: 2.h),
                 Text(
                   'kcal_per_day'.tr(),
-                  style: AppDesignSystem.labelSmall
-                      .copyWith(color: AppDesignSystem.textFaint),
+                  style: AppDesignSystem.labelSmall.copyWith(
+                    color: AppDesignSystem.textFaint,
+                  ),
                 ),
               ],
             ),
@@ -240,26 +248,33 @@ class _MacroGlimpse extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   ClipRRect(
-                    borderRadius:
-                        BorderRadius.circular(AppDesignSystem.radiusFull.r),
+                    borderRadius: BorderRadius.circular(
+                      AppDesignSystem.radiusFull.r,
+                    ),
                     child: Row(
                       children: [
                         Expanded(
                           flex: flex(pc),
                           child: Container(
-                              height: 6.h, color: AppDesignSystem.infoColor),
+                            height: 6.h,
+                            color: AppDesignSystem.infoColor,
+                          ),
                         ),
                         SizedBox(width: 2.w),
                         Expanded(
                           flex: flex(cc),
                           child: Container(
-                              height: 6.h, color: AppDesignSystem.warningColor),
+                            height: 6.h,
+                            color: AppDesignSystem.warningColor,
+                          ),
                         ),
                         SizedBox(width: 2.w),
                         Expanded(
                           flex: flex(fc),
                           child: Container(
-                              height: 6.h, color: AppDesignSystem.successColor),
+                            height: 6.h,
+                            color: AppDesignSystem.successColor,
+                          ),
                         ),
                       ],
                     ),
@@ -268,9 +283,21 @@ class _MacroGlimpse extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      _MacroTag('macro_protein_short_g', p, AppDesignSystem.infoColor),
-                      _MacroTag('macro_carbs_short_g', c, AppDesignSystem.warningColor),
-                      _MacroTag('macro_fat_short_g', f, AppDesignSystem.successColor),
+                      _MacroTag(
+                        'macro_protein_short_g',
+                        p,
+                        AppDesignSystem.infoColor,
+                      ),
+                      _MacroTag(
+                        'macro_carbs_short_g',
+                        c,
+                        AppDesignSystem.warningColor,
+                      ),
+                      _MacroTag(
+                        'macro_fat_short_g',
+                        f,
+                        AppDesignSystem.successColor,
+                      ),
                     ],
                   ),
                 ],
@@ -397,13 +424,16 @@ class _PreviousRow extends StatelessWidget {
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   color: AppDesignSystem.surfaceSunken,
-                  borderRadius:
-                      BorderRadius.circular(AppDesignSystem.radiusMD.r),
+                  borderRadius: BorderRadius.circular(
+                    AppDesignSystem.radiusMD.r,
+                  ),
                   border: Border.all(color: AppDesignSystem.borderColor),
                 ),
-                child: AppIcon(AppIcons.nutrition,
-                    size: AppDesignSystem.iconSizeXS,
-                    color: AppDesignSystem.textFaint),
+                child: AppIcon(
+                  AppIcons.nutrition,
+                  size: AppDesignSystem.iconSizeXS,
+                  color: AppDesignSystem.textFaint,
+                ),
               ),
               SizedBox(width: AppDesignSystem.spacingMD.w),
               Expanded(
@@ -425,16 +455,19 @@ class _PreviousRow extends StatelessWidget {
                         plan.description!,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: AppDesignSystem.bodySmall
-                            .copyWith(color: AppDesignSystem.textFaint),
+                        style: AppDesignSystem.bodySmall.copyWith(
+                          color: AppDesignSystem.textFaint,
+                        ),
                       ),
                     ],
                   ],
                 ),
               ),
-              Icon(Icons.chevron_right,
-                  size: AppDesignSystem.iconSizeSM.sp,
-                  color: AppDesignSystem.textFaint),
+              Icon(
+                Icons.chevron_right,
+                size: AppDesignSystem.iconSizeSM.sp,
+                color: AppDesignSystem.textFaint,
+              ),
             ],
           ),
         ),
@@ -498,10 +531,14 @@ class _AccentTile extends StatelessWidget {
         color: AppDesignSystem.primaryColor.withValues(alpha: 0.13),
         borderRadius: BorderRadius.circular(AppDesignSystem.radiusMD.r),
         border: Border.all(
-            color: AppDesignSystem.primaryColor.withValues(alpha: 0.28)),
+          color: AppDesignSystem.primaryColor.withValues(alpha: 0.28),
+        ),
       ),
-      child: AppIcon(icon,
-          size: AppDesignSystem.iconSizeMD, color: AppDesignSystem.primaryStrong),
+      child: AppIcon(
+        icon,
+        size: AppDesignSystem.iconSizeMD,
+        color: AppDesignSystem.primaryStrong,
+      ),
     );
   }
 }
@@ -525,9 +562,11 @@ class _ViewFooter extends StatelessWidget {
                 fontWeight: AppDesignSystem.bold,
               ),
             ),
-            Icon(Icons.chevron_left,
-                size: AppDesignSystem.iconSizeSM.sp,
-                color: AppDesignSystem.primaryStrong),
+            Icon(
+              Icons.chevron_left,
+              size: AppDesignSystem.iconSizeSM.sp,
+              color: AppDesignSystem.primaryStrong,
+            ),
           ],
         ),
       ],

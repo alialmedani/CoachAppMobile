@@ -57,6 +57,7 @@ class _WorkoutPlanDetailScreenState extends State<WorkoutPlanDetailScreen> {
         ),
         body: GetModel<WorkoutPlanModel>(
           onCubitCreated: (c) => _getModel = c,
+          loadingWidget: AppSkeleton.detail(hero: false),
           useCaseCallBack: () => cubit.fetchWorkoutPlanById(widget.planId),
           modelBuilder: (plan) => _Body(
             plan: plan,

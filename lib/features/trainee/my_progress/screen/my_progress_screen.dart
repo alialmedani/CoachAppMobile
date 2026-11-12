@@ -1,5 +1,6 @@
 import 'package:coachappmobile/core/boilerplate/get_model/cubits/get_model_cubit.dart';
 import 'package:coachappmobile/core/boilerplate/get_model/widgets/get_model.dart';
+import 'package:coachappmobile/core/boilerplate/get_model/widgets/sliver_get_model.dart';
 import 'package:coachappmobile/core/constant/app_design_system.dart';
 import 'package:coachappmobile/core/constant/app_icons/app_icons.dart';
 import 'package:coachappmobile/core/ui/widgets/app_icon.dart';
@@ -80,17 +81,27 @@ class _MyProgressScreenState extends State<MyProgressScreen> {
     final cubit = context.read<MyProgressCubit>();
     return Scaffold(
       backgroundColor: AppDesignSystem.surfaceCanvas,
-      appBar: widget.embedded ? null : AppTopBar(title: 'progress'.tr()),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'fab_my_progress',
         onPressed: () => _add(cubit),
         backgroundColor: AppDesignSystem.primaryColor,
         foregroundColor: AppDesignSystem.onPrimary,
         icon: const Icon(Icons.add),
         label: Text('add_progress'.tr()),
       ),
-      body: GetModel<List<ProgressEntryModel>>(
+      body: SliverGetModel<List<ProgressEntryModel>>(
         onCubitCreated: (c) => _list = c,
         useCaseCallBack: () => cubit.fetchRecent(),
+        loadingWidget: AppSkeleton.dashboard(),
+        contentPadding: EdgeInsets.fromLTRB(
+          AppDesignSystem.spacingMD.w,
+          AppDesignSystem.spacingMD.h,
+          AppDesignSystem.spacingMD.w,
+          AppDesignSystem.spacing4XL.h,
+        ),
+        headerSlivers: [
+          if (!widget.embedded) AppSliverTopBar(title: 'progress'.tr()),
+        ],
         modelBuilder: (entries) {
           // Weight series (oldest → newest) + derived headline / change.
           final weightPoints = <TrendPoint>[
@@ -98,8 +109,9 @@ class _MyProgressScreenState extends State<MyProgressScreen> {
               if (e.weightKg != null && e.date != null)
                 TrendPoint(e.date!, e.weightKg!),
           ];
-          final latestWeight =
-              weightPoints.isNotEmpty ? weightPoints.last.value : null;
+          final latestWeight = weightPoints.isNotEmpty
+              ? weightPoints.last.value
+              : null;
           final weightDelta = weightPoints.length >= 2
               ? weightPoints.last.value - weightPoints.first.value
               : null;
@@ -112,13 +124,8 @@ class _MyProgressScreenState extends State<MyProgressScreen> {
             }
           }
 
-          return ListView(
-            padding: EdgeInsets.fromLTRB(
-              AppDesignSystem.spacingMD.w,
-              AppDesignSystem.spacingMD.h,
-              AppDesignSystem.spacingMD.w,
-              AppDesignSystem.spacing4XL.h,
-            ),
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _ProgressHeader(
                 latestWeight: latestWeight,
@@ -322,8 +329,9 @@ class _Hero extends StatelessWidget {
                         padding: EdgeInsets.only(bottom: 4.h),
                         child: Text(
                           'unit_kg'.tr(),
-                          style: AppDesignSystem.bodySmall
-                              .copyWith(color: AppDesignSystem.textFaint),
+                          style: AppDesignSystem.bodySmall.copyWith(
+                            color: AppDesignSystem.textFaint,
+                          ),
                         ),
                       ),
                     ],
@@ -335,8 +343,9 @@ class _Hero extends StatelessWidget {
                 ] else
                   Text(
                     'no_my_progress_subtitle'.tr(),
-                    style: AppDesignSystem.bodySmall
-                        .copyWith(color: AppDesignSystem.textMuted),
+                    style: AppDesignSystem.bodySmall.copyWith(
+                      color: AppDesignSystem.textMuted,
+                    ),
                   ),
               ],
             ),
@@ -359,13 +368,17 @@ class _DeltaRow extends StatelessWidget {
     final sign = delta > 0 ? '+' : '';
     return Row(
       children: [
-        Icon(icon, size: AppDesignSystem.iconSizeXS.sp,
-            color: AppDesignSystem.textMuted),
+        Icon(
+          icon,
+          size: AppDesignSystem.iconSizeXS.sp,
+          color: AppDesignSystem.textMuted,
+        ),
         SizedBox(width: AppDesignSystem.spacingXS.w),
         Text(
           '$sign${_MyProgressScreenState._n(delta)} ${'unit_kg'.tr()} · ${'since_start'.tr()}',
-          style: AppDesignSystem.bodySmall
-              .copyWith(color: AppDesignSystem.textMuted),
+          style: AppDesignSystem.bodySmall.copyWith(
+            color: AppDesignSystem.textMuted,
+          ),
         ),
       ],
     );
@@ -418,8 +431,9 @@ class _InstrumentTile extends StatelessWidget {
               label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: AppDesignSystem.labelSmall
-                  .copyWith(color: AppDesignSystem.textFaint),
+              style: AppDesignSystem.labelSmall.copyWith(
+                color: AppDesignSystem.textFaint,
+              ),
             ),
           ],
         ),
@@ -442,14 +456,17 @@ class _SectionRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        AppIcon(icon,
-            size: AppDesignSystem.iconSizeSM,
-            color: AppDesignSystem.primaryStrong),
+        AppIcon(
+          icon,
+          size: AppDesignSystem.iconSizeSM,
+          color: AppDesignSystem.primaryStrong,
+        ),
         SizedBox(width: AppDesignSystem.spacingXS.w),
         Text(
           title,
-          style:
-              AppDesignSystem.h6.copyWith(color: AppDesignSystem.textPrimary),
+          style: AppDesignSystem.h6.copyWith(
+            color: AppDesignSystem.textPrimary,
+          ),
         ),
       ],
     );
@@ -485,9 +502,11 @@ class _EntryCard extends StatelessWidget {
               color: AppDesignSystem.primaryStrong.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(AppDesignSystem.radiusMD.r),
             ),
-            child: AppIcon(AppIcons.gauge,
-                size: AppDesignSystem.iconSizeSM,
-                color: AppDesignSystem.primaryStrong),
+            child: AppIcon(
+              AppIcons.gauge,
+              size: AppDesignSystem.iconSizeSM,
+              color: AppDesignSystem.primaryStrong,
+            ),
           ),
           SizedBox(width: AppDesignSystem.spacingMD.w),
           Expanded(

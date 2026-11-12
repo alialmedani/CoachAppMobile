@@ -20,30 +20,35 @@ class _LibraryScreenState extends State<LibraryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Shared "Library" app bar + segmented control, built fresh per segment so
+    // each IndexedStack child owns its own instances. They sit at the top of the
+    // selected segment's scroll view, so they scroll away with the list.
+    List<Widget> sharedHeaderSlivers() => [
+      AppSliverTopBar(title: 'library'.tr()),
+      SliverToBoxAdapter(
+        child: Container(
+          color: AppDesignSystem.surfaceWhite,
+          padding: EdgeInsets.fromLTRB(
+            AppDesignSystem.spacingMD.w,
+            0,
+            AppDesignSystem.spacingMD.w,
+            AppDesignSystem.spacingSM.h,
+          ),
+          child: _Segmented(
+            index: _index,
+            onChanged: (i) => setState(() => _index = i),
+          ),
+        ),
+      ),
+    ];
+
     return Scaffold(
       backgroundColor: AppDesignSystem.surfaceLight,
-      appBar: AppTopBar(title: 'library'.tr()),
-      body: Column(
+      body: IndexedStack(
+        index: _index,
         children: [
-          Container(
-            color: AppDesignSystem.surfaceWhite,
-            padding: EdgeInsets.fromLTRB(
-              AppDesignSystem.spacingMD.w,
-              0,
-              AppDesignSystem.spacingMD.w,
-              AppDesignSystem.spacingSM.h,
-            ),
-            child: _Segmented(
-              index: _index,
-              onChanged: (i) => setState(() => _index = i),
-            ),
-          ),
-          Expanded(
-            child: IndexedStack(
-              index: _index,
-              children: const [ExercisesListScreen(), FoodsListScreen()],
-            ),
-          ),
+          ExercisesListScreen(hostHeaderSlivers: sharedHeaderSlivers()),
+          FoodsListScreen(hostHeaderSlivers: sharedHeaderSlivers()),
         ],
       ),
     );

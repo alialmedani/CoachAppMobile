@@ -71,6 +71,18 @@ class ExerciseCard extends StatelessWidget {
               ],
             ),
           ),
+          // At-a-glance Arabic-translation state so a coach scanning the list
+          // can spot raw machine translations (amber) vs reviewed ones (green).
+          if (exercise.hasArInstructions) ...[
+            Icon(
+              exercise.isArAutoTranslated ? Icons.translate : Icons.verified,
+              size: AppDesignSystem.iconSizeSM.sp,
+              color: exercise.isArAutoTranslated
+                  ? AppDesignSystem.warningColor
+                  : AppDesignSystem.successColor,
+            ),
+            SizedBox(width: AppDesignSystem.spacingXS.w),
+          ],
           Icon(
             Icons.chevron_right,
             color: AppDesignSystem.neutral400,

@@ -1,5 +1,5 @@
 import 'package:coachappmobile/core/boilerplate/pagination/cubits/pagination_cubit.dart';
-import 'package:coachappmobile/core/boilerplate/pagination/widgets/pagination_list.dart';
+import 'package:coachappmobile/core/boilerplate/pagination/widgets/sliver_paginated_list.dart';
 import 'package:coachappmobile/core/constant/app_design_system.dart';
 import 'package:coachappmobile/core/ui/widgets/modern/modern_components.dart';
 import 'package:coachappmobile/core/utils/functions/debouncer.dart';
@@ -16,7 +16,12 @@ import 'widgets/food_card.dart';
 
 /// Food library list: searchable, paginated.
 class FoodsListScreen extends StatefulWidget {
-  const FoodsListScreen({super.key});
+  /// Slivers the Library host injects at the top of this screen's scroll view
+  /// (its "Library" [AppSliverTopBar] + segmented control) so they scroll away
+  /// together with this screen's search/list.
+  final List<Widget> hostHeaderSlivers;
+
+  const FoodsListScreen({super.key, this.hostHeaderSlivers = const []});
 
   @override
   State<FoodsListScreen> createState() => _FoodsListScreenState();
@@ -75,71 +80,62 @@ class _FoodsListScreenState extends State<FoodsListScreen> {
     return Scaffold(
       backgroundColor: AppDesignSystem.surfaceLight,
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'fab_foods',
         onPressed: () => _openCreate(cubit),
         backgroundColor: AppDesignSystem.primaryColor,
         foregroundColor: AppDesignSystem.onPrimary,
         icon: const Icon(Icons.add),
         label: Text('add_food'.tr()),
       ),
-      body: Column(
-        children: [
-          BlocBuilder<FoodCubit, FoodState>(
-            builder: (context, state) => Container(
-              color: AppDesignSystem.surfaceWhite,
-              padding: EdgeInsets.all(AppDesignSystem.spacingMD.w),
-              child: AppTextField(
-                hint: 'search_foods'.tr(),
-                controller: _searchController,
-                onChanged: (v) => _onSearchChanged(cubit, v),
-                prefixIcon: Icon(
-                  Icons.search,
-                  size: AppDesignSystem.iconSizeSM.sp,
-                  color: AppDesignSystem.neutral400,
-                ),
-                suffixIcon: cubit.searchTerm.isNotEmpty
-                    ? IconButton(
-                        icon: Icon(
-                          Icons.clear,
-                          size: AppDesignSystem.iconSizeSM.sp,
-                        ),
-                        onPressed: () {
-                          _searchController.clear();
-                          cubit.setSearchTerm('');
-                          _searchDebouncer.cancel();
-                          _refresh();
-                        },
-                      )
-                    : null,
-              ),
+      body: SliverPaginatedList<FoodModel>(
+        withPagination: true,
+        onCubitCreated: (c) => _pagination = c,
+        repositoryCallBack: (data) => cubit.fetchFoodList(data),
+        noDataWidget: AppEmptyState(
+          icon: Icons.restaurant_outlined,
+          title: 'no_foods'.tr(),
+          subtitle: 'no_foods_subtitle'.tr(),
+          iconColor: AppDesignSystem.primaryColor,
+        ),
+        headerSlivers: [...widget.hostHeaderSlivers, _searchSliver(cubit)],
+        itemBuilder: (context, food, index) =>
+            FoodCard(food: food, onTap: () => _openDetail(cubit, food)),
+      ),
+    );
+  }
+
+  /// Search field — a scroll-away band that stays visible in every list state.
+  Widget _searchSliver(FoodCubit cubit) {
+    return SliverToBoxAdapter(
+      child: BlocBuilder<FoodCubit, FoodState>(
+        builder: (context, state) => Container(
+          color: AppDesignSystem.surfaceWhite,
+          padding: EdgeInsets.all(AppDesignSystem.spacingMD.w),
+          child: AppTextField(
+            hint: 'search_foods'.tr(),
+            controller: _searchController,
+            onChanged: (v) => _onSearchChanged(cubit, v),
+            prefixIcon: Icon(
+              Icons.search,
+              size: AppDesignSystem.iconSizeSM.sp,
+              color: AppDesignSystem.neutral400,
             ),
+            suffixIcon: cubit.searchTerm.isNotEmpty
+                ? IconButton(
+                    icon: Icon(
+                      Icons.clear,
+                      size: AppDesignSystem.iconSizeSM.sp,
+                    ),
+                    onPressed: () {
+                      _searchController.clear();
+                      cubit.setSearchTerm('');
+                      _searchDebouncer.cancel();
+                      _refresh();
+                    },
+                  )
+                : null,
           ),
-          Expanded(
-            child: PaginationList<FoodModel>(
-              withPagination: true,
-              onCubitCreated: (c) => _pagination = c,
-              repositoryCallBack: (data) => cubit.fetchFoodList(data),
-              noDataWidget: AppEmptyState(
-                icon: Icons.restaurant_outlined,
-                title: 'no_foods'.tr(),
-                subtitle: 'no_foods_subtitle'.tr(),
-                iconColor: AppDesignSystem.primaryColor,
-              ),
-              listBuilder: (list) => ListView.builder(
-                padding: EdgeInsets.fromLTRB(
-                  AppDesignSystem.spacingMD.w,
-                  AppDesignSystem.spacingSM.h,
-                  AppDesignSystem.spacingMD.w,
-                  AppDesignSystem.spacing4XL.h,
-                ),
-                itemCount: list.length,
-                itemBuilder: (context, index) => FoodCard(
-                  food: list[index],
-                  onTap: () => _openDetail(cubit, list[index]),
-                ),
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

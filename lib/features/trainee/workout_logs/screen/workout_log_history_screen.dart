@@ -1,5 +1,5 @@
 import 'package:coachappmobile/core/boilerplate/pagination/cubits/pagination_cubit.dart';
-import 'package:coachappmobile/core/boilerplate/pagination/widgets/pagination_list.dart';
+import 'package:coachappmobile/core/boilerplate/pagination/widgets/sliver_paginated_list.dart';
 import 'package:coachappmobile/core/constant/app_design_system.dart';
 import 'package:coachappmobile/core/ui/widgets/modern/modern_components.dart';
 import 'package:easy_localization/easy_localization.dart';
@@ -76,82 +76,78 @@ class _WorkoutLogHistoryScreenState extends State<WorkoutLogHistoryScreen> {
   @override
   Widget build(BuildContext context) {
     final cubit = context.read<WorkoutLogCubit>();
-    final hasFilter = _from != null || _to != null;
     return Scaffold(
       backgroundColor: AppDesignSystem.surfaceLight,
-      appBar: AppTopBar(title: 'workout_history'.tr()),
-      body: Column(
-        children: [
-          Container(
-            color: AppDesignSystem.surfaceWhite,
-            padding: EdgeInsets.fromLTRB(
-              AppDesignSystem.spacingMD.w,
-              AppDesignSystem.spacingSM.h,
-              AppDesignSystem.spacingMD.w,
-              AppDesignSystem.spacingSM.h,
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: _DateFilterChip(
-                    icon: Icons.event_outlined,
-                    label: _from == null ? 'from_date'.tr() : _fmt(_from!),
-                    isSet: _from != null,
-                    onTap: () => _pickFrom(cubit),
-                  ),
-                ),
-                SizedBox(width: AppDesignSystem.spacingSM.w),
-                Expanded(
-                  child: _DateFilterChip(
-                    icon: Icons.event_outlined,
-                    label: _to == null ? 'to_date'.tr() : _fmt(_to!),
-                    isSet: _to != null,
-                    onTap: () => _pickTo(cubit),
-                  ),
-                ),
-                if (hasFilter) ...[
-                  SizedBox(width: AppDesignSystem.spacingXS.w),
-                  IconButton(
-                    tooltip: 'clear_dates'.tr(),
-                    icon: Icon(
-                      Icons.clear,
-                      size: AppDesignSystem.iconSizeSM.sp,
-                      color: AppDesignSystem.neutral500,
-                    ),
-                    onPressed: () => _clearDates(cubit),
-                  ),
-                ],
-              ],
-            ),
-          ),
-          Expanded(
-            child: PaginationList<WorkoutLogModel>(
-              withPagination: true,
-              onCubitCreated: (c) => _pagination = c,
-              repositoryCallBack: (data) => cubit.fetchWorkoutLogList(data),
-              noDataWidget: AppEmptyState(
-                icon: Icons.fitness_center_outlined,
-                title: 'no_workout_logs'.tr(),
-                subtitle: 'no_workout_logs_subtitle'.tr(),
-                iconColor: AppDesignSystem.primaryColor,
-              ),
-              listBuilder: (list) => ListView.builder(
-                padding: EdgeInsets.fromLTRB(
-                  AppDesignSystem.spacingMD.w,
-                  AppDesignSystem.spacingSM.h,
-                  AppDesignSystem.spacingMD.w,
-                  AppDesignSystem.spacing4XL.h,
-                ),
-                itemCount: list.length,
-                itemBuilder: (context, index) => _LogRow(
-                  date: list[index].date == null ? '' : _fmt(list[index].date!),
-                  notes: list[index].notes,
-                  onTap: () => _openDetail(cubit, list[index]),
-                ),
-              ),
-            ),
-          ),
+      body: SliverPaginatedList<WorkoutLogModel>(
+        withPagination: true,
+        onCubitCreated: (c) => _pagination = c,
+        loadingWidget: AppSkeleton.list(),
+        repositoryCallBack: (data) => cubit.fetchWorkoutLogList(data),
+        noDataWidget: AppEmptyState(
+          icon: Icons.fitness_center_outlined,
+          title: 'no_workout_logs'.tr(),
+          subtitle: 'no_workout_logs_subtitle'.tr(),
+          iconColor: AppDesignSystem.primaryColor,
+        ),
+        headerSlivers: [
+          AppSliverTopBar(title: 'workout_history'.tr()),
+          _headerSliver(cubit),
         ],
+        itemBuilder: (context, log, index) => _LogRow(
+          date: log.date == null ? '' : _fmt(log.date!),
+          notes: log.notes,
+          onTap: () => _openDetail(cubit, log),
+        ),
+      ),
+    );
+  }
+
+  /// Date-range filter — a scroll-away band that stays visible in every list
+  /// state (loading / empty / error).
+  Widget _headerSliver(WorkoutLogCubit cubit) {
+    final hasFilter = _from != null || _to != null;
+    return SliverToBoxAdapter(
+      child: Container(
+        color: AppDesignSystem.surfaceWhite,
+        padding: EdgeInsets.fromLTRB(
+          AppDesignSystem.spacingMD.w,
+          AppDesignSystem.spacingSM.h,
+          AppDesignSystem.spacingMD.w,
+          AppDesignSystem.spacingSM.h,
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: _DateFilterChip(
+                icon: Icons.event_outlined,
+                label: _from == null ? 'from_date'.tr() : _fmt(_from!),
+                isSet: _from != null,
+                onTap: () => _pickFrom(cubit),
+              ),
+            ),
+            SizedBox(width: AppDesignSystem.spacingSM.w),
+            Expanded(
+              child: _DateFilterChip(
+                icon: Icons.event_outlined,
+                label: _to == null ? 'to_date'.tr() : _fmt(_to!),
+                isSet: _to != null,
+                onTap: () => _pickTo(cubit),
+              ),
+            ),
+            if (hasFilter) ...[
+              SizedBox(width: AppDesignSystem.spacingXS.w),
+              IconButton(
+                tooltip: 'clear_dates'.tr(),
+                icon: Icon(
+                  Icons.clear,
+                  size: AppDesignSystem.iconSizeSM.sp,
+                  color: AppDesignSystem.neutral500,
+                ),
+                onPressed: () => _clearDates(cubit),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }

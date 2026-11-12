@@ -98,55 +98,63 @@ class _CoachDashboardScreenState extends State<CoachDashboardScreen> {
 
     return Scaffold(
       backgroundColor: AppDesignSystem.surfaceCanvas,
-      appBar: AppTopBar(title: 'dashboard'.tr()),
-      body: ListView(
-        padding: EdgeInsetsDirectional.fromSTEB(
-          AppDesignSystem.spacingMD.w,
-          AppDesignSystem.spacingMD.h,
-          AppDesignSystem.spacingMD.w,
-          AppDesignSystem.spacing4XL.h,
-        ),
-        children: [
-          _Hero(userName: userName),
-          SizedBox(height: AppDesignSystem.spacingLG.h),
-          if (session.can(CoachPermissions.trainees)) ...[
-            _SectionRow(
-              title: 'your_athletes'.tr(),
-              actionLabel: 'view_all'.tr(),
-              onAction: () => widget.onOpenTab?.call('tab_trainees'),
+      body: CustomScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
+          AppSliverTopBar(title: 'dashboard'.tr()),
+          SliverPadding(
+            padding: EdgeInsetsDirectional.fromSTEB(
+              AppDesignSystem.spacingMD.w,
+              AppDesignSystem.spacingMD.h,
+              AppDesignSystem.spacingMD.w,
+              AppDesignSystem.spacing4XL.h,
             ),
-            SizedBox(height: AppDesignSystem.spacingSM.h),
-            GetModel<List<TraineeModel>>(
-              onCubitCreated: (c) => _preview = c,
-              useCaseCallBack: () =>
-                  cubit.fetchTraineeList(GetListRequest(skip: 0, take: 6)),
-              loadingWidget: SizedBox(
-                height: 140.h,
-                child: const Center(child: CircularProgressIndicator()),
-              ),
-              modelBuilder: (list) => list.isEmpty
-                  ? _EmptyRoster(onAdd: () => widget.onOpenTab?.call('tab_trainees'))
-                  : Column(
-                      children: [
-                        for (final t in list)
-                          TraineeCard(
-                            trainee: t,
-                            onTap: () => _openDetail(cubit, t),
-                          ),
-                      ],
+            sliver: SliverList(
+              delegate: SliverChildListDelegate([
+                _Hero(userName: userName),
+                SizedBox(height: AppDesignSystem.spacingLG.h),
+                if (session.can(CoachPermissions.trainees)) ...[
+                  _SectionRow(
+                    title: 'your_athletes'.tr(),
+                    actionLabel: 'view_all'.tr(),
+                    onAction: () => widget.onOpenTab?.call('tab_trainees'),
+                  ),
+                  SizedBox(height: AppDesignSystem.spacingSM.h),
+                  GetModel<List<TraineeModel>>(
+                    onCubitCreated: (c) => _preview = c,
+                    useCaseCallBack: () => cubit.fetchTraineeList(
+                      GetListRequest(skip: 0, take: 6),
                     ),
+                    loadingWidget: AppSkeleton.cards(count: 2),
+                    modelBuilder: (list) => list.isEmpty
+                        ? _EmptyRoster(
+                            onAdd: () => widget.onOpenTab?.call('tab_trainees'),
+                          )
+                        : Column(
+                            children: [
+                              for (final t in list)
+                                TraineeCard(
+                                  trainee: t,
+                                  onTap: () => _openDetail(cubit, t),
+                                ),
+                            ],
+                          ),
+                  ),
+                  SizedBox(height: AppDesignSystem.spacingLG.h),
+                ],
+                if (tiles.isNotEmpty) ...[
+                  Text(
+                    'build_and_manage'.tr(),
+                    style: AppDesignSystem.h6.copyWith(
+                      color: AppDesignSystem.textPrimary,
+                    ),
+                  ),
+                  SizedBox(height: AppDesignSystem.spacingSM.h),
+                  _DeckGrid(tiles: tiles),
+                ],
+              ]),
             ),
-            SizedBox(height: AppDesignSystem.spacingLG.h),
-          ],
-          if (tiles.isNotEmpty) ...[
-            Text(
-              'build_and_manage'.tr(),
-              style: AppDesignSystem.h6
-                  .copyWith(color: AppDesignSystem.textPrimary),
-            ),
-            SizedBox(height: AppDesignSystem.spacingSM.h),
-            _DeckGrid(tiles: tiles),
-          ],
+          ),
         ],
       ),
     );
@@ -220,8 +228,9 @@ class _SectionRow extends StatelessWidget {
         Expanded(
           child: Text(
             title,
-            style: AppDesignSystem.h6
-                .copyWith(color: AppDesignSystem.textPrimary),
+            style: AppDesignSystem.h6.copyWith(
+              color: AppDesignSystem.textPrimary,
+            ),
           ),
         ),
         InkWell(
@@ -241,9 +250,11 @@ class _SectionRow extends StatelessWidget {
                     fontWeight: AppDesignSystem.bold,
                   ),
                 ),
-                Icon(Icons.chevron_right,
-                    size: AppDesignSystem.iconSizeSM.sp,
-                    color: AppDesignSystem.primaryStrong),
+                Icon(
+                  Icons.chevron_right,
+                  size: AppDesignSystem.iconSizeSM.sp,
+                  color: AppDesignSystem.primaryStrong,
+                ),
               ],
             ),
           ),
@@ -271,9 +282,11 @@ class _EmptyRoster extends StatelessWidget {
               color: AppDesignSystem.primaryColor.withValues(alpha: 0.12),
               shape: const ChamferBorder(cut: 10),
             ),
-            child: AppIcon(AppIcons.roster,
-                size: AppDesignSystem.iconSizeSM,
-                color: AppDesignSystem.primaryStrong),
+            child: AppIcon(
+              AppIcons.roster,
+              size: AppDesignSystem.iconSizeSM,
+              color: AppDesignSystem.primaryStrong,
+            ),
           ),
           SizedBox(width: AppDesignSystem.spacingMD.w),
           Expanded(
@@ -285,9 +298,11 @@ class _EmptyRoster extends StatelessWidget {
               ),
             ),
           ),
-          Icon(Icons.chevron_right,
-              size: AppDesignSystem.iconSizeSM.sp,
-              color: AppDesignSystem.textFaint),
+          Icon(
+            Icons.chevron_right,
+            size: AppDesignSystem.iconSizeSM.sp,
+            color: AppDesignSystem.textFaint,
+          ),
         ],
       ),
     );
@@ -364,9 +379,11 @@ class _DeckTile extends StatelessWidget {
                   color: AppDesignSystem.primaryColor.withValues(alpha: 0.12),
                   shape: const ChamferBorder(cut: 10),
                 ),
-                child: AppIcon(icon,
-                    size: AppDesignSystem.iconSizeSM,
-                    color: AppDesignSystem.primaryStrong),
+                child: AppIcon(
+                  icon,
+                  size: AppDesignSystem.iconSizeSM,
+                  color: AppDesignSystem.primaryStrong,
+                ),
               ),
               SizedBox(height: AppDesignSystem.spacingSM.h),
               Text(
@@ -383,8 +400,9 @@ class _DeckTile extends StatelessWidget {
                 subtitle,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: AppDesignSystem.bodySmall
-                    .copyWith(color: AppDesignSystem.textMuted),
+                style: AppDesignSystem.bodySmall.copyWith(
+                  color: AppDesignSystem.textMuted,
+                ),
               ),
             ],
           ),

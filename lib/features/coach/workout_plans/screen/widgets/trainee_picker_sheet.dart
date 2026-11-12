@@ -93,6 +93,7 @@ class _TraineePickerSheetState extends State<_TraineePickerSheet> {
               child: PaginationList<TraineeModel>(
                 withPagination: true,
                 onCubitCreated: (c) => _pagination = c,
+                loadingWidget: AppSkeleton.list(lines: 1),
                 repositoryCallBack: (data) => cubit.fetchTraineeList(data),
                 noDataWidget: AppEmptyState(
                   icon: Icons.people_outline,

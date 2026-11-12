@@ -15,8 +15,12 @@
 // hardcode a URL in a repository.
 const baseUrl = String.fromEnvironment(
   'API_BASE_URL',
+  //emauletr
   defaultValue: 'https://10.0.2.2:44370/',
+  //mobile device
+  // defaultValue: 'https://10.200.0.112:44370/'
 );
+
 
 /// True when [url] is unsafe to ship in a **release** build: a loopback/dev host
 /// (the emulator/localhost default) or non-HTTPS. `main()` fails fast in release
@@ -31,9 +35,6 @@ bool isInsecureReleaseBaseUrl(String url) {
   return loopback || !u.startsWith('https://');
 }
 
-/// Real-time hub base (SignalR) reuses [baseUrl].
-var baseImageUrl = "${baseUrl}api/app/document/by-master/";
-
 /////// auth & session (Phase 1) ////////
 // OpenIddict password/refresh grant. The CoachApp_App public client has the
 // refresh_token grant + the `offline_access` scope seeded, so login returns a
@@ -43,9 +44,6 @@ const loginUrl = '${baseUrl}connect/token';
 // ABP session bootstrap: currentUser (id, roles, tenantId), grantedPolicies,
 // currentTenant. Drives role + permission derivation.
 const appConfigUrl = '${baseUrl}api/abp/application-configuration';
-
-// Optional server-owned localization (enum/error/permission labels — Phase 17).
-const appLocalizationUrl = '${baseUrl}api/abp/application-localization';
 
 /////// account (self-service) ////////
 // Change own password (surfaces in Profile for both roles — Phase 16).
@@ -98,6 +96,11 @@ const nutritionPlanTemplateUrl = '${baseUrl}api/app/nutrition-plan-template';
 const myWorkoutPlanUrl = '${baseUrl}api/app/my-workout-plan';
 const myNutritionPlanUrl = '${baseUrl}api/app/my-nutrition-plan';
 
+// Trainee reads one exercise's details by id (same ExerciseDto shape as the
+// coach endpoint, so the coach ExerciseModel is reused). Reached by tapping an
+// exercise row inside the trainee's workout plan.
+const myExerciseUrl = '${baseUrl}api/app/my-exercise';
+
 /////// trainee — today (Phase 13) ////////
 // GET with `?Date=yyyy-MM-dd` (the trainee's LOCAL date, so "today" respects
 // their timezone). Returns MyTodayDto (always non-null).
@@ -141,13 +144,14 @@ const traineeNoteUrl = '${baseUrl}api/app/trainee-note';
 // summary: Date+FromDate+ToDate. Returns the same TraineeDashboardDto as coach.
 const myDashboardSummaryUrl = '${baseUrl}api/app/my-dashboard/summary';
 
-// Trainee's own progress: Create / List / Get / Delete — **no Update**. The
-// create body OMITS traineeId. List: paging + FromDate?/ToDate? (default Date desc).
+// Trainee's own progress: Create / List / Get / Update / Delete. The create/update
+// body OMITS traineeId. List: paging + FromDate?/ToDate? (default Date desc).
 const myProgressUrl = '${baseUrl}api/app/my-progress';
 
 // Trainee reads coach notes (read-only: List + Get/{id}). NOTE **singular** route
 // `my-note` (the permission is MyNotes). List: paging + Sorting only.
 const myNoteUrl = '${baseUrl}api/app/my-note';
 
-// Trainee's own profile (read-only GET, no input). Returns TraineeDto.
+// Trainee's own profile: GET (returns TraineeDto) + PUT restricted self-edit
+// (phoneNumber/email/birthDate only; username immutable, goals/targets coach-owned).
 const myProfileUrl = '${baseUrl}api/app/my-profile';

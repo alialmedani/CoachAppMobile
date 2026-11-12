@@ -12,14 +12,16 @@ import 'package:flutter/material.dart';
 class ApexColors {
   ApexColors._();
 
-  // ---- Brand: Volt (acid lime) — the primary ------------------------------
-  static const Color volt = Color(0xFFC6F536);
-  static const Color voltStrongDark = Color(0xFFD4FF4A); // readable lime text on dark
-  static const Color voltStrongLight = Color(0xFF5E7A00); // readable lime text on light
-  static const Color voltDeep = Color(0xFFA9D400);
-  static const Color onLime = Color(0xFF11160A); // near-black text ON lime fills
-  static const Color limeSoftDark = Color(0xFF20260C);
-  static const Color limeSoftLight = Color(0xFFEAF7C8);
+  // ---- Brand: Volt "Lime Spark" (acid lime) — the primary -----------------
+  // Base = #B6FF2E ("Lime Spark"). Kept as an ACCENT, never a large fill:
+  // one confident lime element per screen; text ON it is always [onLime] ink.
+  static const Color volt = Color(0xFFB6FF2E);
+  static const Color voltStrongDark = Color(0xFFC6FF52); // readable lime text on dark
+  static const Color voltStrongLight = Color(0xFF567A00); // readable lime text on light
+  static const Color voltDeep = Color(0xFF97DB00); // pressed / active lime
+  static const Color onLime = Color(0xFF0E1500); // near-black ink ON lime fills
+  static const Color limeSoftDark = Color(0xFF1B260A);
+  static const Color limeSoftLight = Color(0xFFEAF9C4);
 
   // ---- Energy: Blaze (orange) --------------------------------------------
   static const Color blaze = Color(0xFFFF6A1A);
@@ -29,16 +31,19 @@ class ApexColors {
   static const Color blazeSoftDark = Color(0xFF2A1608);
   static const Color blazeSoftLight = Color(0xFFFCE6D6);
 
-  // ---- Dark neutrals (hero mode) -----------------------------------------
-  static const Color darkCanvas = Color(0xFF0A0B0D);
-  static const Color darkRaised = Color(0xFF15171B);
-  static const Color darkSunken = Color(0xFF1A1D22);
-  static const Color darkOverlay = Color(0xFF22252B);
-  static const Color darkBorder = Color(0xFF25282E);
-  static const Color darkBorderStrong = Color(0xFF383C43);
-  static const Color darkText = Color(0xFFF3F5EF);
-  static const Color darkMuted = Color(0xFF9BA0A6);
-  static const Color darkFaint = Color(0xFF5C6169);
+  // ---- Dark neutrals: "Graphite" (hero mode) -----------------------------
+  // Cool blue-graphite ramp. The elevated overlay lands exactly on the
+  // reference Graphite (#23262F); the canvas stays a deep near-black so cards
+  // keep real, layered depth above it (canvas < raised < sunken < overlay).
+  static const Color darkCanvas = Color(0xFF0B0D12);
+  static const Color darkRaised = Color(0xFF161922);
+  static const Color darkSunken = Color(0xFF1C202A);
+  static const Color darkOverlay = Color(0xFF23262F); // reference "Graphite"
+  static const Color darkBorder = Color(0xFF2A2E39);
+  static const Color darkBorderStrong = Color(0xFF3B4150);
+  static const Color darkText = Color(0xFFF2F4F7); // crisp cool white on graphite
+  static const Color darkMuted = Color(0xFF9AA1AD);
+  static const Color darkFaint = Color(0xFF5D636E);
 
   // ---- Light neutrals (day mode; defined, not yet wired) -----------------
   static const Color lightCanvas = Color(0xFFEFEFEA);

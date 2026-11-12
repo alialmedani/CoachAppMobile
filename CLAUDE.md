@@ -260,9 +260,12 @@ flutter build apk --debug           # Android build sanity check
 9. **Remaining features** — the full **core product loop is now built** (coach authoring +
    coach tracking + trainee self-service, Phases 1–16) **and Coach Templates (Phase 9) is now built**
    too. What's left is non-core / polish:
-   - **Coach Dashboard** shell tab is still a placeholder (tracking is reached via the trainee-detail hub).
+   - **Coach Dashboard** shell tab is a real "Command Center" (identity hero + live athlete
+     roster preview + permission-gated deck tiles); per-trainee tracking is still reached via the
+     trainee-detail hub.
    - Deferred within logging (14–15): **manual off-plan logging** (needs a plan-item picker —
-     decision D3) and full **history lists**.
+     decision D3). Log **history lists** ARE built (`WorkoutLogHistoryScreen` /
+     `NutritionLogHistoryScreen`, reached from the My-Plans screens).
    - **Hardening (Phases 17–21):** ✅ **UnsavedChangesGuard done on ALL editors** —
      `lib/core/ui/widgets/unsaved_changes_guard.dart` (`UnsavedChangesGuard` wrapping a
      `PopScope(canPop:false)` that reads a live `isDirty()`; both the `AppTopBar` back button via
@@ -288,10 +291,22 @@ flutter build apk --debug           # Android build sanity check
      (current/new → next, confirm → done). Numeric fields already had correct number/decimal keyboards
      and all forms already scroll under the keyboard (`resizeToAvoidBottomInset` default true + scrollable
      bodies / bottom-sheet `viewInsets` padding), so no keyboard-type or scroll changes were needed.
+     ✅ **Premium skeleton loaders done** — `lib/core/ui/widgets/skeleton/app_skeleton.dart`
+     (`AppSkeleton.list/detail/dashboard/cards` + the `SkeletonBone` primitive and the `Skeleton`
+     shimmer wrapper), exported via the `modern/modern_components.dart` barrel. Content-shaped, theme-aware
+     (base/highlight derived from the `appSurfaceMuted`/`appCard` scheme extension), RTL-safe, one cohesive
+     shimmer sweep per loader. **Not global:** the boilerplate loaders (`GetModel`/`PaginationList`) still
+     default to the branded `LoadingWidget` (Orbit) — the skeleton is opted in **per screen** via
+     `loadingWidget: AppSkeleton.<variant>()` (~35 data screens wired: lists → `list()`, details →
+     `detail(hero: …)`, dashboards/overview → `dashboard()`, loaders nested in an already-scrolling screen →
+     `cards(count: …)`). `SkeletonBone` applies ScreenUtil internally, so pass **raw** logical pixels. The
+     full-screen auth wait (`post_login_router`) intentionally keeps the Orbit loader; a few bespoke nested
+     hero/strip sub-loaders were left as-is. Convention: pick the variant by **what the modelBuilder renders**,
+     not by the loader/model type.
      **Still remaining in P17/P18:** network-failure banners + offline read-cache, accessibility audit,
      form-state-on-rotation; language switcher + `intl` date/number formatting (P17 tail).
    - **Testing (Phase 20):** ✅ **first tranche done** — `bloc_test`/`mocktail` added; `test/` mirrors
-     `lib/`; **66 tests green** (`dart analyze test` clean) covering model round-trips (incl. int-enum
+     `lib/`; **89 tests green** (`dart analyze test` clean) covering model round-trips (incl. int-enum
      mapping + the WorkoutLog `toWriteJson` actuals-only invariant), ABP param names, `FoodCubit`
      no-network orchestration, and the `UnsavedChangesGuard`. **Constraint discovered:** feature cubits
      hard-construct their repository (no DI seam) and repos use the **static** `RemoteDataSource`, so

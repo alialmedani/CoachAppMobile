@@ -49,15 +49,19 @@ class _PlansScreenState extends State<PlansScreen> {
       if (widget.showWorkout)
         _PlanSegment(
           labelKey: 'workout_plans',
-          screen: const WorkoutPlansListScreen(embedded: true),
+          builder: (host) =>
+              WorkoutPlansListScreen(embedded: true, hostHeaderSlivers: host),
         ),
       if (widget.showNutrition)
         _PlanSegment(
           labelKey: 'nutrition_plans',
-          screen: const NutritionPlansListScreen(embedded: true),
+          builder: (host) =>
+              NutritionPlansListScreen(embedded: true, hostHeaderSlivers: host),
         ),
     ];
-    final safeIndex = segments.isEmpty ? 0 : _index.clamp(0, segments.length - 1);
+    final safeIndex = segments.isEmpty
+        ? 0
+        : _index.clamp(0, segments.length - 1);
 
     // Templates entry point: shown only when the coach can access at least one
     // of the template libraries. Pushes the standalone Templates host (which
@@ -66,67 +70,80 @@ class _PlansScreenState extends State<PlansScreen> {
     final canTemplates =
         session.can(CoachPermissions.workoutPlanTemplates) ||
         session.can(CoachPermissions.nutritionPlanTemplates);
+    final templatesActions = canTemplates
+        ? <Widget>[
+            IconButton(
+              icon: const Icon(Icons.bookmarks_outlined),
+              tooltip: 'templates'.tr(),
+              onPressed: _openTemplates,
+            ),
+          ]
+        : null;
+
+    // Templates-only coach (no plan permissions): a single scrolling screen
+    // with the "Plans" bar and an "Open Templates" call to action.
+    if (segments.isEmpty) {
+      return Scaffold(
+        backgroundColor: AppDesignSystem.surfaceLight,
+        body: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            AppSliverTopBar(title: 'plans'.tr(), actions: templatesActions),
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: AppEmptyState(
+                icon: Icons.bookmarks_outlined,
+                title: 'plan_templates_only_title'.tr(),
+                subtitle: 'plan_templates_only_subtitle'.tr(),
+                iconColor: AppDesignSystem.primaryColor,
+                action: AppButton(
+                  text: 'open_templates'.tr(),
+                  icon: Icons.bookmarks_outlined,
+                  onPressed: _openTemplates,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // The shared "Plans" app bar + segmented control, built fresh per segment so
+    // each IndexedStack child owns its own instances. They live at the top of
+    // the selected segment's scroll view, so they scroll away with the list.
+    List<Widget> sharedHeaderSlivers() => [
+      AppSliverTopBar(title: 'plans'.tr(), actions: templatesActions),
+      if (segments.length > 1)
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(
+              AppDesignSystem.spacingMD.w,
+              0,
+              AppDesignSystem.spacingMD.w,
+              AppDesignSystem.spacingSM.h,
+            ),
+            child: ApexSegmented(
+              labels: [for (final s in segments) s.labelKey.tr()],
+              index: safeIndex,
+              onChanged: (i) => setState(() => _index = i),
+            ),
+          ),
+        ),
+    ];
 
     return Scaffold(
       backgroundColor: AppDesignSystem.surfaceLight,
-      appBar: AppTopBar(
-        title: 'plans'.tr(),
-        actions: canTemplates
-            ? [
-                IconButton(
-                  icon: const Icon(Icons.bookmarks_outlined),
-                  tooltip: 'templates'.tr(),
-                  onPressed: _openTemplates,
-                ),
-              ]
-            : null,
+      body: IndexedStack(
+        index: safeIndex,
+        children: [for (final s in segments) s.builder(sharedHeaderSlivers())],
       ),
-      body: segments.isEmpty
-          ? AppEmptyState(
-              icon: Icons.bookmarks_outlined,
-              title: 'plan_templates_only_title'.tr(),
-              subtitle: 'plan_templates_only_subtitle'.tr(),
-              iconColor: AppDesignSystem.primaryColor,
-              action: AppButton(
-                text: 'open_templates'.tr(),
-                icon: Icons.bookmarks_outlined,
-                onPressed: _openTemplates,
-              ),
-            )
-          : Column(
-              children: [
-                if (segments.length > 1)
-                  Padding(
-                    padding: EdgeInsets.fromLTRB(
-                      AppDesignSystem.spacingMD.w,
-                      0,
-                      AppDesignSystem.spacingMD.w,
-                      AppDesignSystem.spacingSM.h,
-                    ),
-                    child: ApexSegmented(
-                      labels: [for (final s in segments) s.labelKey.tr()],
-                      index: safeIndex,
-                      onChanged: (i) => setState(() => _index = i),
-                    ),
-                  ),
-                Expanded(
-                  child: IndexedStack(
-                    index: safeIndex,
-                    children: [for (final s in segments) s.screen],
-                  ),
-                ),
-              ],
-            ),
     );
   }
 }
 
 class _PlanSegment {
   final String labelKey;
-  final Widget screen;
+  final Widget Function(List<Widget> hostHeaderSlivers) builder;
 
-  const _PlanSegment({
-    required this.labelKey,
-    required this.screen,
-  });
+  const _PlanSegment({required this.labelKey, required this.builder});
 }

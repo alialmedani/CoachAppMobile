@@ -59,6 +59,7 @@ class _NutritionPlanDetailScreenState extends State<NutritionPlanDetailScreen> {
         ),
         body: GetModel<NutritionPlanModel>(
           onCubitCreated: (c) => _getModel = c,
+          loadingWidget: AppSkeleton.detail(hero: false),
           useCaseCallBack: () => cubit.fetchNutritionPlanById(widget.planId),
           modelBuilder: (plan) => _Body(
             plan: plan,

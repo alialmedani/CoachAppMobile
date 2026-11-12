@@ -1,5 +1,5 @@
 import 'package:coachappmobile/core/boilerplate/pagination/cubits/pagination_cubit.dart';
-import 'package:coachappmobile/core/boilerplate/pagination/widgets/pagination_list.dart';
+import 'package:coachappmobile/core/boilerplate/pagination/widgets/sliver_paginated_list.dart';
 import 'package:coachappmobile/core/constant/app_design_system.dart';
 import 'package:coachappmobile/core/ui/widgets/modern/modern_components.dart';
 import 'package:coachappmobile/core/utils/functions/debouncer.dart';
@@ -17,7 +17,12 @@ import 'widgets/exercise_card.dart';
 
 /// Exercise library list: searchable, filter by muscle, paginated.
 class ExercisesListScreen extends StatefulWidget {
-  const ExercisesListScreen({super.key});
+  /// Slivers the Library host injects at the top of this screen's scroll view
+  /// (its "Library" [AppSliverTopBar] + segmented control) so they scroll away
+  /// together with this screen's search/list.
+  final List<Widget> hostHeaderSlivers;
+
+  const ExercisesListScreen({super.key, this.hostHeaderSlivers = const []});
 
   @override
   State<ExercisesListScreen> createState() => _ExercisesListScreenState();
@@ -76,91 +81,88 @@ class _ExercisesListScreenState extends State<ExercisesListScreen> {
     return Scaffold(
       backgroundColor: AppDesignSystem.surfaceLight,
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'fab_exercises',
         onPressed: () => _openCreate(cubit),
         backgroundColor: AppDesignSystem.primaryColor,
         foregroundColor: AppDesignSystem.onPrimary,
         icon: const Icon(Icons.add),
         label: Text('add_exercise'.tr()),
       ),
-      body: Column(
-        children: [
-          BlocBuilder<ExerciseCubit, ExerciseState>(
-            builder: (context, state) => Container(
-              color: AppDesignSystem.surfaceWhite,
-              padding: EdgeInsets.fromLTRB(
-                AppDesignSystem.spacingMD.w,
-                AppDesignSystem.spacingSM.h,
-                AppDesignSystem.spacingMD.w,
-                AppDesignSystem.spacingSM.h,
-              ),
-              child: Column(
-                children: [
-                  AppTextField(
-                    hint: 'search_exercises'.tr(),
-                    controller: _searchController,
-                    onChanged: (v) => _onSearchChanged(cubit, v),
-                    prefixIcon: Icon(
-                      Icons.search,
-                      size: AppDesignSystem.iconSizeSM.sp,
-                      color: AppDesignSystem.neutral400,
-                    ),
-                    suffixIcon: cubit.searchTerm.isNotEmpty
-                        ? IconButton(
-                            icon: Icon(
-                              Icons.clear,
-                              size: AppDesignSystem.iconSizeSM.sp,
-                            ),
-                            onPressed: () {
-                              _searchController.clear();
-                              cubit.setSearchTerm('');
-                              _searchDebouncer.cancel();
-                              _refresh();
-                            },
-                          )
-                        : null,
-                  ),
-                  SizedBox(height: AppDesignSystem.spacingSM.h),
-                  Align(
-                    alignment: AlignmentDirectional.centerStart,
-                    child: _MuscleFilterChip(
-                      selected: cubit.filterMuscle,
-                      onChanged: (v) {
-                        cubit.setFilterMuscle(v);
-                        _refresh();
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          Expanded(
-            child: PaginationList<ExerciseModel>(
-              withPagination: true,
-              onCubitCreated: (c) => _pagination = c,
-              repositoryCallBack: (data) => cubit.fetchExerciseList(data),
-              noDataWidget: AppEmptyState(
-                icon: Icons.fitness_center,
-                title: 'no_exercises'.tr(),
-                subtitle: 'no_exercises_subtitle'.tr(),
-                iconColor: AppDesignSystem.primaryColor,
-              ),
-              listBuilder: (list) => ListView.builder(
-                padding: EdgeInsets.fromLTRB(
-                  AppDesignSystem.spacingMD.w,
-                  AppDesignSystem.spacingSM.h,
-                  AppDesignSystem.spacingMD.w,
-                  AppDesignSystem.spacing4XL.h,
-                ),
-                itemCount: list.length,
-                itemBuilder: (context, index) => ExerciseCard(
-                  exercise: list[index],
-                  onTap: () => _openDetail(cubit, list[index]),
-                ),
-              ),
-            ),
-          ),
+      body: SliverPaginatedList<ExerciseModel>(
+        withPagination: true,
+        onCubitCreated: (c) => _pagination = c,
+        repositoryCallBack: (data) => cubit.fetchExerciseList(data),
+        noDataWidget: AppEmptyState(
+          icon: Icons.fitness_center,
+          title: 'no_exercises'.tr(),
+          subtitle: 'no_exercises_subtitle'.tr(),
+          iconColor: AppDesignSystem.primaryColor,
+        ),
+        headerSlivers: [
+          ...widget.hostHeaderSlivers,
+          _searchFilterSliver(cubit),
         ],
+        itemBuilder: (context, exercise, index) => ExerciseCard(
+          exercise: exercise,
+          onTap: () => _openDetail(cubit, exercise),
+        ),
+      ),
+    );
+  }
+
+  /// Search field + muscle filter — a scroll-away band that stays visible in
+  /// every list state (loading / empty / error).
+  Widget _searchFilterSliver(ExerciseCubit cubit) {
+    return SliverToBoxAdapter(
+      child: BlocBuilder<ExerciseCubit, ExerciseState>(
+        builder: (context, state) => Container(
+          color: AppDesignSystem.surfaceWhite,
+          padding: EdgeInsets.fromLTRB(
+            AppDesignSystem.spacingMD.w,
+            AppDesignSystem.spacingSM.h,
+            AppDesignSystem.spacingMD.w,
+            AppDesignSystem.spacingSM.h,
+          ),
+          child: Column(
+            children: [
+              AppTextField(
+                hint: 'search_exercises'.tr(),
+                controller: _searchController,
+                onChanged: (v) => _onSearchChanged(cubit, v),
+                prefixIcon: Icon(
+                  Icons.search,
+                  size: AppDesignSystem.iconSizeSM.sp,
+                  color: AppDesignSystem.neutral400,
+                ),
+                suffixIcon: cubit.searchTerm.isNotEmpty
+                    ? IconButton(
+                        icon: Icon(
+                          Icons.clear,
+                          size: AppDesignSystem.iconSizeSM.sp,
+                        ),
+                        onPressed: () {
+                          _searchController.clear();
+                          cubit.setSearchTerm('');
+                          _searchDebouncer.cancel();
+                          _refresh();
+                        },
+                      )
+                    : null,
+              ),
+              SizedBox(height: AppDesignSystem.spacingSM.h),
+              Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: _MuscleFilterChip(
+                  selected: cubit.filterMuscle,
+                  onChanged: (v) {
+                    cubit.setFilterMuscle(v);
+                    _refresh();
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

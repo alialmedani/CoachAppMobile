@@ -66,50 +66,86 @@ class _TemplatesHostState extends State<_TemplatesHost> {
         _TemplateSegment(
           labelKey: 'workout_templates',
           icon: Icons.fitness_center,
-          screen: const WorkoutPlanTemplatesListScreen(embedded: true),
+          builder: (host) => WorkoutPlanTemplatesListScreen(
+            embedded: true,
+            hostHeaderSlivers: host,
+          ),
         ),
       if (widget.showNutrition)
         _TemplateSegment(
           labelKey: 'nutrition_templates',
           icon: Icons.restaurant_menu_outlined,
-          screen: const NutritionPlanTemplatesListScreen(embedded: true),
+          builder: (host) => NutritionPlanTemplatesListScreen(
+            embedded: true,
+            hostHeaderSlivers: host,
+          ),
         ),
     ];
-    final safeIndex = segments.isEmpty ? 0 : _index.clamp(0, segments.length - 1);
+    final safeIndex = segments.isEmpty
+        ? 0
+        : _index.clamp(0, segments.length - 1);
 
-    return Scaffold(
-      backgroundColor: AppDesignSystem.surfaceLight,
-      appBar: AppTopBar(
+    // Defensive: a coach with no template permissions reaches a blank body
+    // (this screen is only opened when at least one is granted). Keep the
+    // scrolling "Templates" bar + back button so the route stays escapable now
+    // that the bar lives inside the scroll view.
+    if (segments.isEmpty) {
+      return Scaffold(
+        backgroundColor: AppDesignSystem.surfaceLight,
+        body: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            AppSliverTopBar(
+              title: 'templates'.tr(),
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ),
+            const SliverFillRemaining(
+              hasScrollBody: false,
+              child: SizedBox.shrink(),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // The shared "Templates" app bar + segmented control, built fresh per
+    // segment so each IndexedStack child owns its own instances. They live at
+    // the top of the selected segment's scroll view, so they scroll away with
+    // the list.
+    List<Widget> sharedHeaderSlivers() => [
+      AppSliverTopBar(
         title: 'templates'.tr(),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: Column(
-        children: [
-          if (segments.length > 1)
-            Container(
-              color: AppDesignSystem.surfaceWhite,
-              padding: EdgeInsets.fromLTRB(
-                AppDesignSystem.spacingMD.w,
-                0,
-                AppDesignSystem.spacingMD.w,
-                AppDesignSystem.spacingSM.h,
-              ),
-              child: _Segmented(
-                segments: segments,
-                index: safeIndex,
-                onChanged: (i) => setState(() => _index = i),
-              ),
+      if (segments.length > 1)
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(
+              AppDesignSystem.spacingMD.w,
+              0,
+              AppDesignSystem.spacingMD.w,
+              AppDesignSystem.spacingSM.h,
             ),
-          Expanded(
-            child: IndexedStack(
+            child: _Segmented(
+              segments: segments,
               index: safeIndex,
-              children: [for (final s in segments) s.screen],
+              onChanged: (i) => setState(() => _index = i),
             ),
           ),
-        ],
+        ),
+    ];
+
+    return Scaffold(
+      backgroundColor: AppDesignSystem.surfaceLight,
+      body: IndexedStack(
+        index: safeIndex,
+        children: [for (final s in segments) s.builder(sharedHeaderSlivers())],
       ),
     );
   }
@@ -118,12 +154,12 @@ class _TemplatesHostState extends State<_TemplatesHost> {
 class _TemplateSegment {
   final String labelKey;
   final IconData icon;
-  final Widget screen;
+  final Widget Function(List<Widget> hostHeaderSlivers) builder;
 
   const _TemplateSegment({
     required this.labelKey,
     required this.icon,
-    required this.screen,
+    required this.builder,
   });
 }
 

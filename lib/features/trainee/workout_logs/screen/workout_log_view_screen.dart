@@ -112,6 +112,7 @@ class _WorkoutLogViewScreenState extends State<WorkoutLogViewScreen> {
         ),
         body: GetModel<WorkoutLogModel>(
           onCubitCreated: (c) => _getModel = c,
+          loadingWidget: AppSkeleton.detail(hero: false),
           useCaseCallBack: () => cubit.fetchLog(widget.logId),
           modelBuilder: (log) => SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),

@@ -73,6 +73,7 @@ class _WorkoutLogList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GetModel<List<WorkoutLogModel>>(
+      loadingWidget: AppSkeleton.list(),
       useCaseCallBack: () => cubit.fetchWorkoutLogs(),
       modelBuilder: (logs) => logs.isEmpty
           ? _empty(Icons.fitness_center_outlined, 'no_workout_logs'.tr())
@@ -114,6 +115,7 @@ class _NutritionLogList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GetModel<List<NutritionLogModel>>(
+      loadingWidget: AppSkeleton.list(),
       useCaseCallBack: () => cubit.fetchNutritionLogs(),
       modelBuilder: (logs) => logs.isEmpty
           ? _empty(Icons.restaurant_outlined, 'no_nutrition_logs'.tr())

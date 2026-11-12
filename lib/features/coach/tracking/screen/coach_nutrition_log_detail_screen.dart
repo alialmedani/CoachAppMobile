@@ -24,6 +24,7 @@ class CoachNutritionLogDetailScreen extends StatelessWidget {
       backgroundColor: AppDesignSystem.surfaceLight,
       appBar: AppTopBar(title: 'nutrition_log'.tr()),
       body: GetModel<NutritionLogModel>(
+        loadingWidget: AppSkeleton.detail(hero: false),
         useCaseCallBack: () => cubit.fetchNutritionLogById(logId),
         modelBuilder: (log) => SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),

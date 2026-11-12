@@ -93,6 +93,7 @@ class _ExercisePickerSheetState extends State<_ExercisePickerSheet> {
               child: PaginationList<ExerciseModel>(
                 withPagination: true,
                 onCubitCreated: (c) => _pagination = c,
+                loadingWidget: AppSkeleton.list(),
                 repositoryCallBack: (data) => cubit.fetchExerciseList(data),
                 noDataWidget: AppEmptyState(
                   icon: Icons.fitness_center,

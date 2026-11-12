@@ -1,5 +1,5 @@
 import 'package:coachappmobile/core/boilerplate/pagination/cubits/pagination_cubit.dart';
-import 'package:coachappmobile/core/boilerplate/pagination/widgets/pagination_list.dart';
+import 'package:coachappmobile/core/boilerplate/pagination/widgets/sliver_paginated_list.dart';
 import 'package:coachappmobile/core/constant/app_design_system.dart';
 import 'package:coachappmobile/core/constant/app_icons/app_icons.dart';
 import 'package:coachappmobile/core/ui/shapes/chamfer.dart';
@@ -74,7 +74,6 @@ class _TraineesListScreenState extends State<TraineesListScreen> {
     final cubit = context.read<TraineeCubit>();
     return Scaffold(
       backgroundColor: AppDesignSystem.surfaceCanvas,
-      appBar: AppTopBar(title: 'trainees'.tr()),
       floatingActionButton: FloatingActionButton.extended(
         heroTag: 'fab_trainees',
         onPressed: () => _openCreate(cubit),
@@ -88,56 +87,53 @@ class _TraineesListScreenState extends State<TraineesListScreen> {
         ),
         label: Text('add_trainee'.tr()),
       ),
-      body: Column(
-        children: [
-          BlocBuilder<TraineeCubit, TraineeState>(
-            builder: (context, state) => _SearchAndFilters(
-              controller: _searchController,
-              searchTerm: cubit.searchTerm,
-              filterActive: cubit.filterActive,
-              filterGoal: cubit.filterGoal,
-              onSearchChanged: _onSearchChanged,
-              onClearSearch: () {
-                _searchController.clear();
-                _onSearchChanged('');
-              },
-              onStatusChanged: (v) {
-                cubit.setFilterActive(v);
-                _refresh();
-              },
-              onGoalChanged: (v) {
-                cubit.setFilterGoal(v);
-                _refresh();
-              },
-            ),
-          ),
-          Expanded(
-            child: PaginationList<TraineeModel>(
-              withPagination: true,
-              onCubitCreated: (c) => _pagination = c,
-              repositoryCallBack: (data) => cubit.fetchTraineeList(data),
-              noDataWidget: AppEmptyState(
-                icon: Icons.people_outline,
-                title: 'no_trainees'.tr(),
-                subtitle: 'no_trainees_subtitle'.tr(),
-                iconColor: AppDesignSystem.primaryColor,
-              ),
-              listBuilder: (list) => ListView.builder(
-                padding: EdgeInsets.fromLTRB(
-                  AppDesignSystem.spacingMD.w,
-                  AppDesignSystem.spacingSM.h,
-                  AppDesignSystem.spacingMD.w,
-                  AppDesignSystem.spacing4XL.h,
-                ),
-                itemCount: list.length,
-                itemBuilder: (context, index) => TraineeCard(
-                  trainee: list[index],
-                  onTap: () => _openDetail(cubit, list[index]),
-                ),
-              ),
-            ),
-          ),
+      body: SliverPaginatedList<TraineeModel>(
+        withPagination: true,
+        onCubitCreated: (c) => _pagination = c,
+        loadingWidget: AppSkeleton.list(lines: 3),
+        repositoryCallBack: (data) => cubit.fetchTraineeList(data),
+        noDataWidget: AppEmptyState(
+          icon: Icons.people_outline,
+          title: 'no_trainees'.tr(),
+          subtitle: 'no_trainees_subtitle'.tr(),
+          iconColor: AppDesignSystem.primaryColor,
+        ),
+        headerSlivers: [
+          AppSliverTopBar(title: 'trainees'.tr()),
+          _headerSliver(cubit),
         ],
+        itemBuilder: (context, trainee, index) => TraineeCard(
+          trainee: trainee,
+          onTap: () => _openDetail(cubit, trainee),
+        ),
+      ),
+    );
+  }
+
+  /// Search + status/goal filters — a scroll-away band that stays visible in
+  /// every list state (loading / empty / error).
+  Widget _headerSliver(TraineeCubit cubit) {
+    return SliverToBoxAdapter(
+      child: BlocBuilder<TraineeCubit, TraineeState>(
+        builder: (context, state) => _SearchAndFilters(
+          controller: _searchController,
+          searchTerm: cubit.searchTerm,
+          filterActive: cubit.filterActive,
+          filterGoal: cubit.filterGoal,
+          onSearchChanged: _onSearchChanged,
+          onClearSearch: () {
+            _searchController.clear();
+            _onSearchChanged('');
+          },
+          onStatusChanged: (v) {
+            cubit.setFilterActive(v);
+            _refresh();
+          },
+          onGoalChanged: (v) {
+            cubit.setFilterGoal(v);
+            _refresh();
+          },
+        ),
       ),
     );
   }
@@ -187,7 +183,10 @@ class _SearchAndFilters extends StatelessWidget {
             ),
             suffixIcon: searchTerm.isNotEmpty
                 ? IconButton(
-                    icon: Icon(Icons.clear, size: AppDesignSystem.iconSizeSM.sp),
+                    icon: Icon(
+                      Icons.clear,
+                      size: AppDesignSystem.iconSizeSM.sp,
+                    ),
                     onPressed: onClearSearch,
                   )
                 : null,
@@ -264,7 +263,11 @@ class _GoalFilterChip extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.flag_outlined, size: AppDesignSystem.iconSizeXS.sp, color: color),
+            Icon(
+              Icons.flag_outlined,
+              size: AppDesignSystem.iconSizeXS.sp,
+              color: color,
+            ),
             SizedBox(width: AppDesignSystem.spacing2XS.w),
             Text(
               label,
@@ -273,7 +276,11 @@ class _GoalFilterChip extends StatelessWidget {
                 fontWeight: AppDesignSystem.bold,
               ),
             ),
-            Icon(Icons.arrow_drop_down, size: AppDesignSystem.iconSizeSM.sp, color: color),
+            Icon(
+              Icons.arrow_drop_down,
+              size: AppDesignSystem.iconSizeSM.sp,
+              color: color,
+            ),
           ],
         ),
       ),

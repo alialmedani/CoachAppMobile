@@ -79,6 +79,7 @@ class _WorkoutPlanTemplateDetailScreenState
         ),
         body: GetModel<WorkoutPlanModel>(
           onCubitCreated: (c) => _getModel = c,
+          loadingWidget: AppSkeleton.detail(hero: false),
           useCaseCallBack: () => cubit.fetchTemplateById(widget.templateId),
           modelBuilder: (template) {
             _template = template;

@@ -30,6 +30,7 @@ class MyNotesScreen extends StatelessWidget {
       appBar: AppTopBar(title: 'coach_notes'.tr()),
       body: GetModel<List<TraineeNoteModel>>(
         useCaseCallBack: () => cubit.fetchRecent(),
+        loadingWidget: AppSkeleton.list(thumbnail: false),
         // Viewing the list (from Today's "new note" surface OR the Profile entry)
         // marks the newest note as seen, so the Today surface clears.
         onSuccess: (notes) {

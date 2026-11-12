@@ -1,6 +1,6 @@
 import 'package:coachappmobile/core/boilerplate/pagination/cubits/pagination_cubit.dart';
 import 'package:coachappmobile/core/boilerplate/pagination/models/get_list_request.dart';
-import 'package:coachappmobile/core/boilerplate/pagination/widgets/pagination_list.dart';
+import 'package:coachappmobile/core/boilerplate/pagination/widgets/sliver_paginated_list.dart';
 import 'package:coachappmobile/core/constant/app_design_system.dart';
 import 'package:coachappmobile/core/ui/widgets/modern/modern_components.dart';
 import 'package:coachappmobile/core/utils/functions/debouncer.dart';
@@ -31,11 +31,17 @@ class NutritionPlansListScreen extends StatefulWidget {
   final String? traineeName;
   final bool embedded;
 
+  /// Slivers the host (the Plans segmented screen) injects at the very top of
+  /// this screen's scroll view — its "Plans" [AppSliverTopBar] + segmented
+  /// control — so they scroll away together with this screen's search/list.
+  final List<Widget> hostHeaderSlivers;
+
   const NutritionPlansListScreen({
     super.key,
     this.traineeId,
     this.traineeName,
     this.embedded = false,
+    this.hostHeaderSlivers = const [],
   });
 
   @override
@@ -69,7 +75,9 @@ class _NutritionPlansListScreenState extends State<NutritionPlansListScreen> {
       return;
     }
     final result = await TraineeRepository().getTraineeListRequest(
-      params: GetTraineeListParams(request: GetListRequest(skip: 0, take: 1000)),
+      params: GetTraineeListParams(
+        request: GetListRequest(skip: 0, take: 1000),
+      ),
     );
     if (!mounted || !result.hasDataOnly) return;
     final list = result.data ?? <TraineeModel>[];
@@ -236,125 +244,120 @@ class _NutritionPlansListScreenState extends State<NutritionPlansListScreen> {
     final cubit = context.read<NutritionPlanCubit>();
     return Scaffold(
       backgroundColor: AppDesignSystem.surfaceLight,
-      appBar: widget.embedded
-          ? null
-          : AppTopBar(
-              title: 'nutrition_plans'.tr(),
-              subtitle: widget.traineeName,
-            ),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'fab_nutrition_plans',
         onPressed: () => _openCreate(cubit),
         backgroundColor: AppDesignSystem.primaryColor,
         foregroundColor: AppDesignSystem.onPrimary,
         icon: const Icon(Icons.add),
         label: Text('add_nutrition_plan'.tr()),
       ),
-      body: Column(
-        children: [
-          BlocBuilder<NutritionPlanCubit, NutritionPlanState>(
-            builder: (context, state) => Container(
-              color: AppDesignSystem.surfaceWhite,
-              padding: EdgeInsets.fromLTRB(
-                AppDesignSystem.spacingMD.w,
-                AppDesignSystem.spacingSM.h,
-                AppDesignSystem.spacingMD.w,
-                AppDesignSystem.spacingSM.h,
-              ),
-              child: Column(
-                children: [
-                  AppTextField(
-                    hint: 'search_nutrition_plans'.tr(),
-                    controller: _searchController,
-                    onChanged: (v) => _onSearchChanged(cubit, v),
-                    prefixIcon: Icon(
-                      Icons.search,
-                      size: AppDesignSystem.iconSizeSM.sp,
-                      color: AppDesignSystem.neutral400,
-                    ),
-                    suffixIcon: cubit.searchTerm.isNotEmpty
-                        ? IconButton(
-                            icon: Icon(
-                              Icons.clear,
-                              size: AppDesignSystem.iconSizeSM.sp,
-                            ),
-                            onPressed: () {
-                              _searchController.clear();
-                              cubit.setSearchTerm('');
-                              _searchDebouncer.cancel();
-                              _refresh();
-                            },
-                          )
-                        : null,
-                  ),
-                  SizedBox(height: AppDesignSystem.spacingSM.h),
-                  Align(
-                    alignment: AlignmentDirectional.centerStart,
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                        children: [
-                          _StatusChip(
-                            label: 'all'.tr(),
-                            selected: cubit.filterActive == null,
-                            onTap: () {
-                              cubit.setFilterActive(null);
-                              _refresh();
-                            },
-                          ),
-                          _StatusChip(
-                            label: 'active'.tr(),
-                            selected: cubit.filterActive == true,
-                            onTap: () {
-                              cubit.setFilterActive(true);
-                              _refresh();
-                            },
-                          ),
-                          _StatusChip(
-                            label: 'inactive'.tr(),
-                            selected: cubit.filterActive == false,
-                            onTap: () {
-                              cubit.setFilterActive(false);
-                              _refresh();
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+      body: SliverPaginatedList<NutritionPlanModel>(
+        withPagination: true,
+        onCubitCreated: (c) => _pagination = c,
+        repositoryCallBack: (data) => cubit.fetchNutritionPlanList(data),
+        noDataWidget: AppEmptyState(
+          icon: Icons.restaurant_menu_outlined,
+          title: 'no_nutrition_plans'.tr(),
+          subtitle: 'no_nutrition_plans_subtitle'.tr(),
+          iconColor: AppDesignSystem.primaryColor,
+        ),
+        headerSlivers: [
+          ...widget.hostHeaderSlivers,
+          if (!widget.embedded)
+            AppSliverTopBar(
+              title: 'nutrition_plans'.tr(),
+              subtitle: widget.traineeName,
             ),
-          ),
-          Expanded(
-            child: PaginationList<NutritionPlanModel>(
-              withPagination: true,
-              onCubitCreated: (c) => _pagination = c,
-              repositoryCallBack: (data) => cubit.fetchNutritionPlanList(data),
-              noDataWidget: AppEmptyState(
-                icon: Icons.restaurant_menu_outlined,
-                title: 'no_nutrition_plans'.tr(),
-                subtitle: 'no_nutrition_plans_subtitle'.tr(),
-                iconColor: AppDesignSystem.primaryColor,
-              ),
-              listBuilder: (list) => ListView.builder(
-                padding: EdgeInsets.fromLTRB(
-                  AppDesignSystem.spacingMD.w,
-                  AppDesignSystem.spacingSM.h,
-                  AppDesignSystem.spacingMD.w,
-                  AppDesignSystem.spacing4XL.h,
-                ),
-                itemCount: list.length,
-                itemBuilder: (context, index) => NutritionPlanCard(
-                  plan: list[index],
-                  traineeName: _traineeNames[list[index].traineeId],
-                  onTap: () => _openDetail(cubit, list[index]),
-                  onAction: (action) =>
-                      _handleAction(cubit, list[index], action),
-                ),
-              ),
-            ),
-          ),
+          _searchFilterSliver(cubit),
         ],
+        itemBuilder: (context, plan, index) => NutritionPlanCard(
+          plan: plan,
+          traineeName: _traineeNames[plan.traineeId],
+          onTap: () => _openDetail(cubit, plan),
+          onAction: (action) => _handleAction(cubit, plan, action),
+        ),
+      ),
+    );
+  }
+
+  /// Search field + status filter chips — a scroll-away band that stays visible
+  /// in every list state (loading / empty / error).
+  Widget _searchFilterSliver(NutritionPlanCubit cubit) {
+    return SliverToBoxAdapter(
+      child: BlocBuilder<NutritionPlanCubit, NutritionPlanState>(
+        builder: (context, state) => Container(
+          color: AppDesignSystem.surfaceWhite,
+          padding: EdgeInsets.fromLTRB(
+            AppDesignSystem.spacingMD.w,
+            AppDesignSystem.spacingSM.h,
+            AppDesignSystem.spacingMD.w,
+            AppDesignSystem.spacingSM.h,
+          ),
+          child: Column(
+            children: [
+              AppTextField(
+                hint: 'search_nutrition_plans'.tr(),
+                controller: _searchController,
+                onChanged: (v) => _onSearchChanged(cubit, v),
+                prefixIcon: Icon(
+                  Icons.search,
+                  size: AppDesignSystem.iconSizeSM.sp,
+                  color: AppDesignSystem.neutral400,
+                ),
+                suffixIcon: cubit.searchTerm.isNotEmpty
+                    ? IconButton(
+                        icon: Icon(
+                          Icons.clear,
+                          size: AppDesignSystem.iconSizeSM.sp,
+                        ),
+                        onPressed: () {
+                          _searchController.clear();
+                          cubit.setSearchTerm('');
+                          _searchDebouncer.cancel();
+                          _refresh();
+                        },
+                      )
+                    : null,
+              ),
+              SizedBox(height: AppDesignSystem.spacingSM.h),
+              Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      _StatusChip(
+                        label: 'all'.tr(),
+                        selected: cubit.filterActive == null,
+                        onTap: () {
+                          cubit.setFilterActive(null);
+                          _refresh();
+                        },
+                      ),
+                      _StatusChip(
+                        label: 'active'.tr(),
+                        selected: cubit.filterActive == true,
+                        onTap: () {
+                          cubit.setFilterActive(true);
+                          _refresh();
+                        },
+                      ),
+                      _StatusChip(
+                        label: 'inactive'.tr(),
+                        selected: cubit.filterActive == false,
+                        onTap: () {
+                          cubit.setFilterActive(false);
+                          _refresh();
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -380,7 +383,9 @@ class _StatusChip extends StatelessWidget {
         selected: selected,
         showCheckmark: false,
         labelStyle: AppDesignSystem.labelMedium.copyWith(
-          color: selected ? AppDesignSystem.onPrimary : AppDesignSystem.neutral600,
+          color: selected
+              ? AppDesignSystem.onPrimary
+              : AppDesignSystem.neutral600,
         ),
         selectedColor: AppDesignSystem.primaryColor,
         backgroundColor: AppDesignSystem.neutral100,

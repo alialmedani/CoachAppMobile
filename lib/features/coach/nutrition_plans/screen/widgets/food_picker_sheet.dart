@@ -94,6 +94,7 @@ class _FoodPickerSheetState extends State<_FoodPickerSheet> {
               child: PaginationList<FoodModel>(
                 withPagination: true,
                 onCubitCreated: (c) => _pagination = c,
+                loadingWidget: AppSkeleton.list(lines: 3),
                 repositoryCallBack: (data) => cubit.fetchFoodList(data),
                 noDataWidget: AppEmptyState(
                   icon: Icons.restaurant_outlined,

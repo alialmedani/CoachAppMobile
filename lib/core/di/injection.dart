@@ -11,6 +11,7 @@ import 'package:coachappmobile/features/coach/trainees/cubit/trainee_cubit.dart'
 import 'package:coachappmobile/features/coach/workout_plan_templates/cubit/workout_plan_template_cubit.dart';
 import 'package:coachappmobile/features/coach/workout_plans/cubit/workout_plan_cubit.dart';
 import 'package:coachappmobile/features/trainee/my_dashboard/cubit/my_dashboard_cubit.dart';
+import 'package:coachappmobile/features/trainee/my_exercise/cubit/my_exercise_cubit.dart';
 import 'package:coachappmobile/features/trainee/my_notes/cubit/my_notes_cubit.dart';
 import 'package:coachappmobile/features/trainee/my_nutrition_plans/cubit/my_nutrition_plan_cubit.dart';
 import 'package:coachappmobile/features/trainee/my_profile/cubit/my_profile_cubit.dart';
@@ -55,6 +56,7 @@ Future<void> setUp() async {
 
   // Trainee (self-service) feature cubits.
   getIt.registerFactory(() => MyWorkoutPlanCubit());
+  getIt.registerFactory(() => MyExerciseCubit());
   getIt.registerFactory(() => MyNutritionPlanCubit());
   getIt.registerFactory(() => MyTodayCubit());
   getIt.registerFactory(() => WorkoutLogCubit());

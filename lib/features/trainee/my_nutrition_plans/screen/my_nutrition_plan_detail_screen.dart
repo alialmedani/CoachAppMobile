@@ -34,6 +34,7 @@ class MyNutritionPlanDetailScreen extends StatelessWidget {
       backgroundColor: AppDesignSystem.surfaceCanvas,
       appBar: AppTopBar(title: 'nutrition_plan_details'.tr()),
       body: GetModel<NutritionPlanModel>(
+        loadingWidget: AppSkeleton.detail(),
         useCaseCallBack: () => cubit.fetchMyNutritionPlanById(planId),
         modelBuilder: (plan) => SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),

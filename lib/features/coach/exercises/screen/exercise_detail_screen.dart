@@ -51,6 +51,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
         ),
         body: GetModel<ExerciseModel>(
           onCubitCreated: (c) => _getModel = c,
+          loadingWidget: AppSkeleton.detail(),
           useCaseCallBack: () => cubit.fetchExerciseById(widget.exerciseId),
           modelBuilder: (exercise) => _Body(
             exercise: exercise,
@@ -205,6 +206,21 @@ class _Body extends StatelessWidget {
                           : AppBadgeVariant.neutral,
                       dot: true,
                     ),
+                    // At-a-glance Arabic-translation state: amber = raw machine
+                    // translation, green = coach-reviewed. Absent when there are
+                    // no Arabic instructions at all.
+                    if (exercise.hasArInstructions)
+                      AppBadge(
+                        text: exercise.isArAutoTranslated
+                            ? 'ar_auto_translated'.tr()
+                            : 'ar_reviewed'.tr(),
+                        variant: exercise.isArAutoTranslated
+                            ? AppBadgeVariant.warning
+                            : AppBadgeVariant.success,
+                        icon: exercise.isArAutoTranslated
+                            ? Icons.translate
+                            : Icons.verified,
+                      ),
                   ],
                 ),
               ],

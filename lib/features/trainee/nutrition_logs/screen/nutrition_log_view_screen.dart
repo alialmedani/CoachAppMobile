@@ -109,6 +109,7 @@ class _NutritionLogViewScreenState extends State<NutritionLogViewScreen> {
         ),
         body: GetModel<NutritionLogModel>(
           onCubitCreated: (c) => _getModel = c,
+          loadingWidget: AppSkeleton.detail(hero: false),
           useCaseCallBack: () => cubit.fetchLog(widget.logId),
           modelBuilder: (log) => SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),

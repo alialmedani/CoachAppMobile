@@ -24,6 +24,7 @@ class CoachWorkoutLogDetailScreen extends StatelessWidget {
       backgroundColor: AppDesignSystem.surfaceLight,
       appBar: AppTopBar(title: 'workout_log'.tr()),
       body: GetModel<WorkoutLogModel>(
+        loadingWidget: AppSkeleton.detail(hero: false),
         useCaseCallBack: () => cubit.fetchWorkoutLogById(logId),
         modelBuilder: (log) => SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),

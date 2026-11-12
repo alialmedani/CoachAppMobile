@@ -47,6 +47,7 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
         ),
         body: GetModel<FoodModel>(
           onCubitCreated: (c) => _getModel = c,
+          loadingWidget: AppSkeleton.detail(hero: false),
           useCaseCallBack: () => cubit.fetchFoodById(widget.foodId),
           modelBuilder: (food) => _Body(
             food: food,

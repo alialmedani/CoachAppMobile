@@ -1,4 +1,5 @@
 import 'package:coachappmobile/core/boilerplate/get_model/widgets/get_model.dart';
+import 'package:coachappmobile/core/boilerplate/get_model/widgets/sliver_get_model.dart';
 import 'package:coachappmobile/core/constant/app_design_system.dart';
 import 'package:coachappmobile/core/constant/app_icons/app_icons.dart';
 import 'package:coachappmobile/core/di/injection.dart';
@@ -41,9 +42,18 @@ class MyWorkoutPlansScreen extends StatelessWidget {
     final cubit = context.read<MyWorkoutPlanCubit>();
     return Scaffold(
       backgroundColor: AppDesignSystem.surfaceCanvas,
-      appBar: embedded
-          ? null
-          : AppTopBar(
+      body: SliverGetModel<List<WorkoutPlanModel>>(
+        useCaseCallBack: () => cubit.fetchMyWorkoutPlans(),
+        loadingWidget: AppSkeleton.list(),
+        contentPadding: EdgeInsets.fromLTRB(
+          AppDesignSystem.spacingMD.w,
+          AppDesignSystem.spacingMD.h,
+          AppDesignSystem.spacingMD.w,
+          AppDesignSystem.spacing4XL.h,
+        ),
+        headerSlivers: [
+          if (!embedded)
+            AppSliverTopBar(
               title: 'my_workout_plans'.tr(),
               actions: [
                 IconButton(
@@ -54,31 +64,23 @@ class MyWorkoutPlansScreen extends StatelessWidget {
                 ),
               ],
             ),
-      body: GetModel<List<WorkoutPlanModel>>(
-        useCaseCallBack: () => cubit.fetchMyWorkoutPlans(),
+        ],
         modelBuilder: (plans) {
           if (plans.isEmpty) {
-            return ListView(
-              children: [
-                SizedBox(height: AppDesignSystem.spacing4XL.h),
-                AppEmptyState(
-                  icon: Icons.fitness_center_outlined,
-                  title: 'no_my_workout_plans'.tr(),
-                  subtitle: 'no_my_workout_plans_subtitle'.tr(),
-                  iconColor: AppDesignSystem.primaryColor,
-                ),
-              ],
+            return Padding(
+              padding: EdgeInsets.only(top: AppDesignSystem.spacing3XL.h),
+              child: AppEmptyState(
+                icon: Icons.fitness_center_outlined,
+                title: 'no_my_workout_plans'.tr(),
+                subtitle: 'no_my_workout_plans_subtitle'.tr(),
+                iconColor: AppDesignSystem.primaryColor,
+              ),
             );
           }
           final active = plans.where((p) => p.isActive).toList();
           final previous = plans.where((p) => !p.isActive).toList();
-          return ListView(
-            padding: EdgeInsets.fromLTRB(
-              AppDesignSystem.spacingMD.w,
-              AppDesignSystem.spacingMD.h,
-              AppDesignSystem.spacingMD.w,
-              AppDesignSystem.spacing4XL.h,
-            ),
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               for (final p in active)
                 Padding(
@@ -104,7 +106,11 @@ class MyWorkoutPlansScreen extends StatelessWidget {
     );
   }
 
-  void _open(BuildContext context, MyWorkoutPlanCubit cubit, WorkoutPlanModel p) {
+  void _open(
+    BuildContext context,
+    MyWorkoutPlanCubit cubit,
+    WorkoutPlanModel p,
+  ) {
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -163,8 +169,9 @@ class _FeaturedWorkoutCard extends StatelessWidget {
                             summary.description!,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: AppDesignSystem.bodySmall
-                                .copyWith(color: AppDesignSystem.textMuted),
+                            style: AppDesignSystem.bodySmall.copyWith(
+                              color: AppDesignSystem.textMuted,
+                            ),
                           ),
                         ],
                       ],
@@ -203,8 +210,10 @@ class _WeeklyStripStats extends StatelessWidget {
         .whereType<Weekday>()
         .map((w) => w.value)
         .toSet();
-    final exerciseCount =
-        plan.days.fold<int>(0, (sum, d) => sum + d.exercises.length);
+    final exerciseCount = plan.days.fold<int>(
+      0,
+      (sum, d) => sum + d.exercises.length,
+    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -259,7 +268,9 @@ class _DayDot extends StatelessWidget {
             fontFamily: AppDesignSystem.fontFamily,
             fontSize: AppDesignSystem.fontSizeXS.sp,
             fontWeight: AppDesignSystem.bold,
-            color: on ? AppDesignSystem.primaryStrong : AppDesignSystem.textFaint,
+            color: on
+                ? AppDesignSystem.primaryStrong
+                : AppDesignSystem.textFaint,
           ),
         ),
         SizedBox(height: AppDesignSystem.spacingXS.h),
@@ -272,7 +283,9 @@ class _DayDot extends StatelessWidget {
             boxShadow: on
                 ? [
                     BoxShadow(
-                      color: AppDesignSystem.primaryColor.withValues(alpha: 0.5),
+                      color: AppDesignSystem.primaryColor.withValues(
+                        alpha: 0.5,
+                      ),
                       blurRadius: 8,
                     ),
                   ]
@@ -299,8 +312,9 @@ class _StripPlaceholder extends StatelessWidget {
                 margin: EdgeInsets.symmetric(horizontal: 3.w),
                 decoration: BoxDecoration(
                   color: AppDesignSystem.surfaceSunken,
-                  borderRadius:
-                      BorderRadius.circular(AppDesignSystem.radiusFull.r),
+                  borderRadius: BorderRadius.circular(
+                    AppDesignSystem.radiusFull.r,
+                  ),
                 ),
               ),
             ),
@@ -387,13 +401,16 @@ class _PreviousRow extends StatelessWidget {
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   color: AppDesignSystem.surfaceSunken,
-                  borderRadius:
-                      BorderRadius.circular(AppDesignSystem.radiusMD.r),
+                  borderRadius: BorderRadius.circular(
+                    AppDesignSystem.radiusMD.r,
+                  ),
                   border: Border.all(color: AppDesignSystem.borderColor),
                 ),
-                child: AppIcon(AppIcons.barbell,
-                    size: AppDesignSystem.iconSizeXS,
-                    color: AppDesignSystem.textFaint),
+                child: AppIcon(
+                  AppIcons.barbell,
+                  size: AppDesignSystem.iconSizeXS,
+                  color: AppDesignSystem.textFaint,
+                ),
               ),
               SizedBox(width: AppDesignSystem.spacingMD.w),
               Expanded(
@@ -415,16 +432,19 @@ class _PreviousRow extends StatelessWidget {
                         plan.description!,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: AppDesignSystem.bodySmall
-                            .copyWith(color: AppDesignSystem.textFaint),
+                        style: AppDesignSystem.bodySmall.copyWith(
+                          color: AppDesignSystem.textFaint,
+                        ),
                       ),
                     ],
                   ],
                 ),
               ),
-              Icon(Icons.chevron_right,
-                  size: AppDesignSystem.iconSizeSM.sp,
-                  color: AppDesignSystem.textFaint),
+              Icon(
+                Icons.chevron_right,
+                size: AppDesignSystem.iconSizeSM.sp,
+                color: AppDesignSystem.textFaint,
+              ),
             ],
           ),
         ),
@@ -488,10 +508,14 @@ class _AccentTile extends StatelessWidget {
         color: AppDesignSystem.primaryColor.withValues(alpha: 0.13),
         borderRadius: BorderRadius.circular(AppDesignSystem.radiusMD.r),
         border: Border.all(
-            color: AppDesignSystem.primaryColor.withValues(alpha: 0.28)),
+          color: AppDesignSystem.primaryColor.withValues(alpha: 0.28),
+        ),
       ),
-      child: AppIcon(icon,
-          size: AppDesignSystem.iconSizeMD, color: AppDesignSystem.primaryStrong),
+      child: AppIcon(
+        icon,
+        size: AppDesignSystem.iconSizeMD,
+        color: AppDesignSystem.primaryStrong,
+      ),
     );
   }
 }
@@ -515,9 +539,11 @@ class _ViewFooter extends StatelessWidget {
                 fontWeight: AppDesignSystem.bold,
               ),
             ),
-            Icon(Icons.chevron_left,
-                size: AppDesignSystem.iconSizeSM.sp,
-                color: AppDesignSystem.primaryStrong),
+            Icon(
+              Icons.chevron_left,
+              size: AppDesignSystem.iconSizeSM.sp,
+              color: AppDesignSystem.primaryStrong,
+            ),
           ],
         ),
       ],

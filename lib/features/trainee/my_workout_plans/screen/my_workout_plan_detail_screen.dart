@@ -1,12 +1,15 @@
 import 'package:coachappmobile/core/boilerplate/get_model/widgets/get_model.dart';
 import 'package:coachappmobile/core/constant/app_design_system.dart';
 import 'package:coachappmobile/core/constant/app_icons/app_icons.dart';
+import 'package:coachappmobile/core/di/injection.dart';
 import 'package:coachappmobile/core/ui/widgets/app_icon.dart';
 import 'package:coachappmobile/core/ui/widgets/apex/duotone_hero.dart';
 import 'package:coachappmobile/core/ui/widgets/modern/modern_components.dart';
 import 'package:coachappmobile/features/coach/workout_plans/data/model/workout_day_model.dart';
 import 'package:coachappmobile/features/coach/workout_plans/data/model/workout_exercise_model.dart';
 import 'package:coachappmobile/features/coach/workout_plans/data/model/workout_plan_model.dart';
+import 'package:coachappmobile/features/trainee/my_exercise/cubit/my_exercise_cubit.dart';
+import 'package:coachappmobile/features/trainee/my_exercise/screen/my_exercise_detail_screen.dart';
 import 'package:easy_localization/easy_localization.dart' hide TextDirection;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -30,6 +33,7 @@ class MyWorkoutPlanDetailScreen extends StatelessWidget {
       backgroundColor: AppDesignSystem.surfaceCanvas,
       appBar: AppTopBar(title: 'workout_plan_details'.tr()),
       body: GetModel<WorkoutPlanModel>(
+        loadingWidget: AppSkeleton.detail(),
         useCaseCallBack: () => cubit.fetchMyWorkoutPlanById(planId),
         modelBuilder: (plan) {
           final exerciseCount =
@@ -260,7 +264,9 @@ class _ExerciseRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
+    final id = exercise.exerciseId?.trim() ?? '';
+    final tappable = id.isNotEmpty;
+    final content = Padding(
       padding: EdgeInsets.symmetric(vertical: AppDesignSystem.spacingXS.h),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -311,9 +317,39 @@ class _ExerciseRow extends StatelessWidget {
               ),
             ),
           ],
+          if (tappable) ...[
+            SizedBox(width: AppDesignSystem.spacingXS.w),
+            Icon(
+              Icons.info_outline,
+              size: AppDesignSystem.iconSizeSM.sp,
+              color: AppDesignSystem.textFaint,
+            ),
+          ],
           SizedBox(width: AppDesignSystem.spacingMD.w),
           _Node(index: index, first: first),
         ],
+      ),
+    );
+    if (!tappable) return content;
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(AppDesignSystem.radiusMD.r),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AppDesignSystem.radiusMD.r),
+        onTap: () => _openExercise(context, id),
+        child: content,
+      ),
+    );
+  }
+
+  void _openExercise(BuildContext context, String id) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => BlocProvider(
+          create: (_) => getIt<MyExerciseCubit>(),
+          child: MyExerciseDetailScreen(exerciseId: id),
+        ),
       ),
     );
   }

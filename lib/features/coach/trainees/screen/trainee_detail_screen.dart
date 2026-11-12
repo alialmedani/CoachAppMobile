@@ -24,7 +24,7 @@ import 'package:coachappmobile/features/coach/tracking/cubit/coach_dashboard_cub
 import 'package:coachappmobile/features/coach/tracking/cubit/coach_log_cubit.dart';
 import 'package:coachappmobile/features/coach/tracking/cubit/notes_cubit.dart';
 import 'package:coachappmobile/features/coach/tracking/cubit/progress_cubit.dart';
-import 'package:coachappmobile/features/coach/tracking/screen/coach_dashboard_screen.dart';
+import 'package:coachappmobile/features/coach/tracking/screen/trainee_overview_screen.dart';
 import 'package:coachappmobile/features/coach/tracking/screen/coach_logs_screen.dart';
 import 'package:coachappmobile/features/coach/tracking/screen/notes_screen.dart';
 import 'package:coachappmobile/features/coach/tracking/screen/progress_screen.dart';
@@ -142,6 +142,7 @@ class _TraineeDetailScreenState extends State<TraineeDetailScreen>
         ),
         body: GetModel<TraineeModel>(
           onCubitCreated: (c) => _getModel = c,
+          loadingWidget: AppSkeleton.detail(),
           useCaseCallBack: () => cubit.fetchTraineeById(widget.traineeId),
           modelBuilder: (trainee) {
             _startReveal();
@@ -587,7 +588,7 @@ class _TrackingDeck extends StatelessWidget {
             context,
             BlocProvider(
               create: (_) => getIt<CoachDashboardCubit>(),
-              child: CoachDashboardScreen(traineeId: id, traineeName: name),
+              child: TraineeOverviewScreen(traineeId: id, traineeName: name),
             ),
           ),
         ),

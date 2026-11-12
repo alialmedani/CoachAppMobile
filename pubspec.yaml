@@ -25,6 +25,10 @@ dependencies:
   flutter:
     sdk: flutter
   flutter_bloc: ^9.1.1
+  # Pinned to 0.2.0: it depends on xml ^6.6.1 (compatible with `excel`), whereas
+  # 0.2.1 requires xml ^7 which conflicts with excel 4.0.6. Same public API
+  # (BodyAtlasView / MuscleCatalog / Muscle / AtlasAsset). Interactive muscle map.
+  flutter_body_atlas: 0.2.0
   flutter_launcher_icons: ^0.14.4
   flutter_local_notifications: ^19.5.0
   flutter_map: ^8.2.2

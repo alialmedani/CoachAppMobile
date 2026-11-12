@@ -78,6 +78,7 @@ class _NotesScreenState extends State<NotesScreen> {
           : null,
       body: GetModel<List<TraineeNoteModel>>(
         onCubitCreated: (c) => _list = c,
+        loadingWidget: AppSkeleton.list(thumbnail: false, lines: 3),
         useCaseCallBack: () => cubit.fetchRecent(),
         modelBuilder: (notes) => notes.isEmpty
             ? ListView(

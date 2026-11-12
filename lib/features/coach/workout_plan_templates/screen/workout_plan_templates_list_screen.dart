@@ -1,5 +1,5 @@
 import 'package:coachappmobile/core/boilerplate/pagination/cubits/pagination_cubit.dart';
-import 'package:coachappmobile/core/boilerplate/pagination/widgets/pagination_list.dart';
+import 'package:coachappmobile/core/boilerplate/pagination/widgets/sliver_paginated_list.dart';
 import 'package:coachappmobile/core/constant/app_design_system.dart';
 import 'package:coachappmobile/core/ui/widgets/modern/modern_components.dart';
 import 'package:coachappmobile/core/utils/functions/debouncer.dart';
@@ -26,7 +26,17 @@ class WorkoutPlanTemplatesListScreen extends StatefulWidget {
   /// segmented host (which owns the title); standalone use keeps it.
   final bool embedded;
 
-  const WorkoutPlanTemplatesListScreen({super.key, this.embedded = false});
+  /// Slivers the host (the Templates segmented screen) injects at the very top
+  /// of this screen's scroll view — its "Templates" [AppSliverTopBar] +
+  /// segmented control — so they scroll away together with this screen's
+  /// search / list.
+  final List<Widget> hostHeaderSlivers;
+
+  const WorkoutPlanTemplatesListScreen({
+    super.key,
+    this.embedded = false,
+    this.hostHeaderSlivers = const [],
+  });
 
   @override
   State<WorkoutPlanTemplatesListScreen> createState() =>
@@ -80,9 +90,7 @@ class _WorkoutPlanTemplatesListScreenState
       MaterialPageRoute(
         builder: (_) => BlocProvider.value(
           value: cubit,
-          child: WorkoutPlanTemplateDetailScreen(
-            templateId: template.id ?? '',
-          ),
+          child: WorkoutPlanTemplateDetailScreen(templateId: template.id ?? ''),
         ),
       ),
     );
@@ -189,9 +197,8 @@ class _WorkoutPlanTemplatesListScreenState
   }
 
   void _snack(String message, Color color) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: color),
-    );
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message), backgroundColor: color));
   }
 
   @override
@@ -205,11 +212,9 @@ class _WorkoutPlanTemplatesListScreenState
 
     return Scaffold(
       backgroundColor: AppDesignSystem.surfaceLight,
-      appBar: widget.embedded
-          ? null
-          : AppTopBar(title: 'workout_templates'.tr()),
       floatingActionButton: canCreate
           ? FloatingActionButton.extended(
+              heroTag: 'fab_workout_plan_templates',
               onPressed: () => _openCreate(cubit),
               backgroundColor: AppDesignSystem.primaryColor,
               foregroundColor: AppDesignSystem.onPrimary,
@@ -217,75 +222,74 @@ class _WorkoutPlanTemplatesListScreenState
               label: Text('add_template'.tr()),
             )
           : null,
-      body: Column(
-        children: [
-          BlocBuilder<WorkoutPlanTemplateCubit, WorkoutPlanTemplateState>(
-            builder: (context, state) => Container(
-              color: AppDesignSystem.surfaceWhite,
-              padding: EdgeInsets.fromLTRB(
-                AppDesignSystem.spacingMD.w,
-                AppDesignSystem.spacingSM.h,
-                AppDesignSystem.spacingMD.w,
-                AppDesignSystem.spacingSM.h,
-              ),
-              child: AppTextField(
-                hint: 'search_workout_templates'.tr(),
-                controller: _searchController,
-                onChanged: (v) => _onSearchChanged(cubit, v),
-                prefixIcon: Icon(
-                  Icons.search,
-                  size: AppDesignSystem.iconSizeSM.sp,
-                  color: AppDesignSystem.neutral400,
-                ),
-                suffixIcon: cubit.searchTerm.isNotEmpty
-                    ? IconButton(
-                        icon: Icon(
-                          Icons.clear,
-                          size: AppDesignSystem.iconSizeSM.sp,
-                        ),
-                        onPressed: () {
-                          _searchController.clear();
-                          cubit.setSearchTerm('');
-                          _searchDebouncer.cancel();
-                          _refresh();
-                        },
-                      )
-                    : null,
-              ),
-            ),
-          ),
-          Expanded(
-            child: PaginationList<WorkoutPlanModel>(
-              withPagination: true,
-              onCubitCreated: (c) => _pagination = c,
-              repositoryCallBack: (data) => cubit.fetchTemplateList(data),
-              noDataWidget: AppEmptyState(
-                icon: Icons.dashboard_customize_outlined,
-                title: 'no_workout_templates'.tr(),
-                subtitle: 'no_workout_templates_subtitle'.tr(),
-                iconColor: AppDesignSystem.primaryColor,
-              ),
-              listBuilder: (list) => ListView.builder(
-                padding: EdgeInsets.fromLTRB(
-                  AppDesignSystem.spacingMD.w,
-                  AppDesignSystem.spacingSM.h,
-                  AppDesignSystem.spacingMD.w,
-                  AppDesignSystem.spacing4XL.h,
-                ),
-                itemCount: list.length,
-                itemBuilder: (context, index) => WorkoutPlanTemplateCard(
-                  template: list[index],
-                  canClone: canClone,
-                  canEdit: canEdit,
-                  canDelete: canDelete,
-                  onTap: () => _openDetail(cubit, list[index]),
-                  onAction: (action) =>
-                      _handleAction(cubit, list[index], action),
-                ),
-              ),
-            ),
-          ),
+      body: SliverPaginatedList<WorkoutPlanModel>(
+        withPagination: true,
+        onCubitCreated: (c) => _pagination = c,
+        loadingWidget: AppSkeleton.list(),
+        repositoryCallBack: (data) => cubit.fetchTemplateList(data),
+        noDataWidget: AppEmptyState(
+          icon: Icons.dashboard_customize_outlined,
+          title: 'no_workout_templates'.tr(),
+          subtitle: 'no_workout_templates_subtitle'.tr(),
+          iconColor: AppDesignSystem.primaryColor,
+        ),
+        headerSlivers: [
+          ...widget.hostHeaderSlivers,
+          if (!widget.embedded)
+            AppSliverTopBar(title: 'workout_templates'.tr()),
+          _searchSliver(cubit),
         ],
+        itemBuilder: (context, template, index) => WorkoutPlanTemplateCard(
+          template: template,
+          canClone: canClone,
+          canEdit: canEdit,
+          canDelete: canDelete,
+          onTap: () => _openDetail(cubit, template),
+          onAction: (action) => _handleAction(cubit, template, action),
+        ),
+      ),
+    );
+  }
+
+  /// Search field — a scroll-away band that stays visible in every list state
+  /// (loading / empty / error). Templates carry no active state, so there are
+  /// no status filter chips here.
+  Widget _searchSliver(WorkoutPlanTemplateCubit cubit) {
+    return SliverToBoxAdapter(
+      child: BlocBuilder<WorkoutPlanTemplateCubit, WorkoutPlanTemplateState>(
+        builder: (context, state) => Container(
+          color: AppDesignSystem.surfaceWhite,
+          padding: EdgeInsets.fromLTRB(
+            AppDesignSystem.spacingMD.w,
+            AppDesignSystem.spacingSM.h,
+            AppDesignSystem.spacingMD.w,
+            AppDesignSystem.spacingSM.h,
+          ),
+          child: AppTextField(
+            hint: 'search_workout_templates'.tr(),
+            controller: _searchController,
+            onChanged: (v) => _onSearchChanged(cubit, v),
+            prefixIcon: Icon(
+              Icons.search,
+              size: AppDesignSystem.iconSizeSM.sp,
+              color: AppDesignSystem.neutral400,
+            ),
+            suffixIcon: cubit.searchTerm.isNotEmpty
+                ? IconButton(
+                    icon: Icon(
+                      Icons.clear,
+                      size: AppDesignSystem.iconSizeSM.sp,
+                    ),
+                    onPressed: () {
+                      _searchController.clear();
+                      cubit.setSearchTerm('');
+                      _searchDebouncer.cancel();
+                      _refresh();
+                    },
+                  )
+                : null,
+          ),
+        ),
       ),
     );
   }

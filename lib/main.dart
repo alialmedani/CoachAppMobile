@@ -12,6 +12,7 @@ import 'core/constant/app_theme/app_theme.dart';
 import 'core/constant/app_theme/shad_theme.dart';
 import 'core/constant/end_points/api_url.dart';
 import 'core/di/injection.dart';
+import 'core/utils/functions/device_locale.dart';
 import 'core/ui/screens/splash_screen.dart';
 import 'features/auth/cubit/session_cubit.dart';
 import 'features/auth/screen/login_screen.dart';
@@ -54,10 +55,25 @@ Future<void> main() async {
       path: 'assets/translations',
       // RTL-first: Arabic is the default and fallback language.
       fallbackLocale: const Locale('ar'),
-      startLocale: Locale(CacheHelper.lang == 'en' ? 'en' : 'ar'),
+      startLocale: _resolveStartLocale(),
+      // CacheHelper owns language persistence (see [_resolveStartLocale] + the
+      // in-app LanguageSwitcher), so easy_localization must NOT also persist —
+      // otherwise its saved value would override our device-follow logic.
+      saveLocale: false,
       child: const CoachApp(),
     ),
   );
+}
+
+/// The locale to launch in: an explicit in-app choice (persisted in
+/// [CacheHelper]) always wins; otherwise, on first launch, follow the device's
+/// system language when it's one we support, falling back to Arabic. Once the
+/// user picks a language in Settings it's saved and this device-follow stops.
+Locale _resolveStartLocale() {
+  final chosen = CacheHelper.langOrNull;
+  if (chosen == 'en') return const Locale('en');
+  if (chosen == 'ar') return const Locale('ar');
+  return Locale(deviceFollowLanguageCode());
 }
 
 class CoachApp extends StatelessWidget {

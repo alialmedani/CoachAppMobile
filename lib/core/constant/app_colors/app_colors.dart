@@ -105,7 +105,7 @@ extension AppColors on ColorScheme {
   static const Color darkTextTertiary = ApexColors.darkFaint;
   static const Color darkBorder = ApexColors.darkBorder;
   static const Color darkSurfaceMuted = ApexColors.darkOverlay;
-  static const Color darkBackgroundSoft = Color(0xFF101215);
+  static const Color darkBackgroundSoft = Color(0xFF101319);
   static const Color darkIconMuted = ApexColors.darkFaint;
   static const Color darkError = ApexColors.critDark;
 

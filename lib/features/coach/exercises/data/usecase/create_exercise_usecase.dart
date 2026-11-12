@@ -13,6 +13,15 @@ class SaveExerciseParams extends BaseParams {
   String name;
   String? description;
   String? instructions;
+
+  /// Editable Arabic instructions (coach-editable, shown to the trainee).
+  String? instructionsAr;
+
+  /// Write-once machine-translation snapshot; carried so the form can offer a
+  /// "restore original translation" action and so the backend keeps preserving
+  /// it across updates. Only sent when present.
+  String? instructionsArOriginal;
+
   int targetMuscle;
   int equipment;
   String? videoUrl;
@@ -24,6 +33,8 @@ class SaveExerciseParams extends BaseParams {
     this.name = '',
     this.description,
     this.instructions,
+    this.instructionsAr,
+    this.instructionsArOriginal,
     this.targetMuscle = 0,
     this.equipment = 0,
     this.videoUrl,
@@ -36,6 +47,8 @@ class SaveExerciseParams extends BaseParams {
     name: e.name ?? '',
     description: e.description,
     instructions: e.instructions,
+    instructionsAr: e.instructionsAr,
+    instructionsArOriginal: e.instructionsArOriginal,
     targetMuscle: e.targetMuscle.value,
     equipment: e.equipment.value,
     videoUrl: e.videoUrl,
@@ -50,6 +63,13 @@ class SaveExerciseParams extends BaseParams {
         'description': description,
       if (instructions != null && instructions!.isNotEmpty)
         'instructions': instructions,
+      // Always send the Arabic instructions (null when empty) so a coach can
+      // clear them, mirroring how `instructions` is treated as optional text.
+      'instructionsAr': (instructionsAr != null && instructionsAr!.isNotEmpty)
+          ? instructionsAr
+          : null,
+      if (instructionsArOriginal != null && instructionsArOriginal!.isNotEmpty)
+        'instructionsArOriginal': instructionsArOriginal,
       'targetMuscle': targetMuscle,
       'equipment': equipment,
       if (videoUrl != null && videoUrl!.isNotEmpty) 'videoUrl': videoUrl,

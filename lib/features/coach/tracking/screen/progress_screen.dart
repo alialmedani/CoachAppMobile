@@ -86,6 +86,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
           : null,
       body: GetModel<List<ProgressEntryModel>>(
         onCubitCreated: (c) => _list = c,
+        loadingWidget: AppSkeleton.dashboard(),
         useCaseCallBack: () => cubit.fetchRecent(),
         modelBuilder: (entries) {
           final weightPoints = <TrendPoint>[

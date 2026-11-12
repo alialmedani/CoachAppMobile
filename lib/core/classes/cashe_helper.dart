@@ -105,6 +105,10 @@ class CacheHelper {
   }
 
   static Future<void> setLang(String value) => box.put(languageValue, value);
+
+  /// Drop the explicit language override so the app goes back to following the
+  /// device's system language ([langOrNull] returns null again after this).
+  static Future<void> clearLang() => box.delete(languageValue);
   static Future<void> setTenant(String value) => box.put(tenantName, value);
 
   static Future<void> setToken(String? value) async {
@@ -161,6 +165,11 @@ class CacheHelper {
   ////////////////////////////////Get///////////////////////////////
 
   static String get lang => box.get(languageValue) ?? 'ar';
+
+  /// The explicitly-chosen UI language, or `null` when the user has never picked
+  /// one — the signal for "first launch: follow the device language". ([lang]
+  /// defaults to 'ar' for legacy callers, which would mask that distinction.)
+  static String? get langOrNull => box.get(languageValue) as String?;
   static String get tenant => box.get(tenantName) ?? '';
   static String get theme => box.get('app_theme', defaultValue: 'light');
   static String? get token {

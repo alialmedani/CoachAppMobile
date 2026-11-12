@@ -7,7 +7,10 @@ import 'package:coachappmobile/core/ui/shapes/chamfer.dart';
 import 'package:coachappmobile/core/ui/widgets/apex/athlete_credential.dart';
 import 'package:coachappmobile/core/ui/widgets/app_icon.dart';
 import 'package:coachappmobile/core/ui/widgets/modern/modern_components.dart';
+import 'package:coachappmobile/core/ui/widgets/language_switcher.dart';
+import 'package:coachappmobile/core/utils/Navigation/navigation.dart';
 import 'package:coachappmobile/features/auth/cubit/session_cubit.dart';
+import 'package:coachappmobile/features/auth/screen/post_login_router.dart';
 import 'package:coachappmobile/features/auth/screen/change_password_screen.dart';
 import 'package:coachappmobile/features/coach/tracking/data/model/progress_entry_model.dart';
 import 'package:coachappmobile/features/coach/trainees/data/model/trainee_model.dart';
@@ -145,6 +148,7 @@ class _MyProfileScreenState extends State<MyProfileScreen>
       backgroundColor: AppDesignSystem.surfaceCanvas,
       body: GetModel<TraineeModel>(
         onCubitCreated: (c) => _getModel = c,
+        loadingWidget: AppSkeleton.dashboard(),
         useCaseCallBack: () => cubit.fetchProfile(),
         modelBuilder: (p) {
           _startReveal();
@@ -208,6 +212,16 @@ class _MyProfileScreenState extends State<MyProfileScreen>
                     onNotes: _openNotes,
                     onChangePassword: _openChangePassword,
                     onLogout: () => context.read<SessionCubit>().logout(),
+                  ),
+                ),
+                SizedBox(height: AppDesignSystem.spacingLG.h),
+                _staggered(
+                  6,
+                  LanguageSwitcher(
+                    // Re-route to the role gate so the whole shell rebuilds in
+                    // the new language (cached tabs included) without a restart.
+                    onChanged: () =>
+                        Navigation.pushAndRemoveUntil(const PostLoginRouter()),
                   ),
                 ),
               ],
@@ -337,10 +351,7 @@ class _JourneySectionState extends State<_JourneySection> {
     return GetModel<List<ProgressEntryModel>>(
       onCubitCreated: (c) => _model = c,
       useCaseCallBack: () => cubit.fetchRecent(),
-      loadingWidget: SizedBox(
-        height: 150.h,
-        child: const Center(child: CircularProgressIndicator()),
-      ),
+      loadingWidget: AppSkeleton.cards(count: 1),
       modelBuilder: (entries) {
         final current = _latestWeight(entries);
         return _JourneyPanel(
